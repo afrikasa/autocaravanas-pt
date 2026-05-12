@@ -2,7 +2,7 @@
 
 ## Para Agora (v0.3.0)
 - [ ] Conectar formulários do site ao backoffice (leads reais, não só demo data)
-- [ ] Deploy no Vercel (subdomínio gratuito)
+- [x] Deploy no Vercel → https://autocaravanas-pt.vercel.app
 - [ ] bg-caravan.jpg — foto real de autocaravana no hero
 
 ## Futuro Próximo (v0.4.0)

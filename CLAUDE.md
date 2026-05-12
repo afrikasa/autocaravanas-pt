@@ -75,12 +75,12 @@ Fontes: Playfair Display (títulos) + DM Sans (corpo) + DM Mono (labels/mono)
 - Backoffice: login, dashboard, gestão de stock, leads, gerador IA, Facebook preview, configurações
 - Gerador IA com Anthropic API (requer API key nas Configurações do backoffice)
 - Stock manual do backoffice aparece no site público via localStorage
+- Deploy no Vercel: https://autocaravanas-pt.vercel.app
 
 ### Pendente
 - Conectar formulários do site ao backoffice (leads reais, não só demo data)
 - Importar viaturas do Caravan Hunter directamente para stock público do backoffice
 - Facebook API real (publicação automática)
-- Deploy no Vercel (subdomínio gratuito)
 - bg-caravan.jpg (foto de fundo do hero — usar foto de autocaravana)
 
 ---
