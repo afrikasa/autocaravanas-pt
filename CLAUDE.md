@@ -36,7 +36,7 @@ C:\Users\marcu\Desktop\autocaravanas-pt\
 
 ## API Backend (Caravan Hunter)
 
-- URL: http://178.104.200.214:8002
+- URL: http://178.104.200.214:8003
 - Uso: stock automático via Caravan Hunter (scraper)
 - Porta reservada só para este projecto no VPS Hetzner
 - Fallback: se API offline → mostra stock manual do localStorage (backoffice)

@@ -3,7 +3,7 @@
 ## [0.2.0] - 2026-05-12
 ### Adicionado
 - Homepage completa: hero, stock, tipologias, retomas, alertas de preço, FAQ, CTA, footer
-- Stock lê da API Caravan Hunter (http://178.104.200.214:8002) com fallback para localStorage
+- Stock lê da API Caravan Hunter (http://178.104.200.214:8003) com fallback para localStorage
 - Modal de detalhe ao clicar em viatura (foto, specs, link WhatsApp directo)
 - Backoffice: login, dashboard, gestão de stock, leads, gerador de texto IA, Facebook preview, configurações
 - Gerador IA com Anthropic API (requer API key nas Configurações do backoffice)
