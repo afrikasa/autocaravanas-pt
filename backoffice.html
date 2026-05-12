@@ -1,0 +1,990 @@
+<!DOCTYPE html>
+<html lang="pt-PT">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Backoffice — Autocaravanas Portugal</title>
+<style>
+:root{
+  --ink:#0e0f0c;--paper:#f5f0e8;--cream:#ede8dc;--sand:#d4c9b0;
+  --rust:#c4521a;--rust-l:rgba(196,82,26,.1);
+  --forest:#1a3a2a;--forest-l:rgba(26,58,42,.09);
+  --gold:#b8952a;--gold-l:rgba(184,149,42,.1);
+  --muted:#7a7265;--border:rgba(14,15,12,.1);--border-2:rgba(14,15,12,.18);
+  --red:#dc2626;--red-l:rgba(220,38,38,.09);
+  --green:#16a34a;--green-l:rgba(22,163,74,.09);
+  --blue:#1d4ed8;--blue-l:rgba(29,78,216,.09);
+  --sidebar:220px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#f8f7f4;color:var(--ink);font-family:'Segoe UI',system-ui,sans-serif;font-size:14px;line-height:1.5}
+a{color:inherit;text-decoration:none}button,input,select,textarea{font-family:inherit}
+
+/* ── LOGIN ── */
+#login-screen{position:fixed;inset:0;background:var(--forest);display:flex;align-items:center;justify-content:center;z-index:9999}
+.login-box{background:#fff;border-radius:16px;padding:40px;width:360px;text-align:center;box-shadow:0 32px 80px rgba(0,0,0,.3)}
+.login-logo{font-size:13px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:8px}
+.login-title{font-size:24px;font-weight:700;margin-bottom:4px}
+.login-sub{font-size:13px;color:var(--muted);margin-bottom:28px}
+.login-input{width:100%;background:#f8f7f4;border:1.5px solid var(--border-2);border-radius:6px;padding:12px 14px;font-size:14px;outline:none;margin-bottom:12px;transition:border-color .15s}
+.login-input:focus{border-color:var(--forest)}
+.login-btn{width:100%;background:var(--forest);color:#fff;padding:13px;border-radius:6px;font-size:14px;font-weight:600;border:none;cursor:pointer;transition:filter .15s;margin-top:4px}
+.login-btn:hover{filter:brightness(1.15)}
+.login-err{color:var(--red);font-size:12.5px;margin-top:8px;display:none}
+
+/* ── LAYOUT ── */
+#app{display:none}
+.layout{display:flex;min-height:100vh}
+
+/* ── SIDEBAR ── */
+.sidebar{width:var(--sidebar);background:var(--forest);color:#fff;display:flex;flex-direction:column;position:fixed;top:0;left:0;bottom:0;z-index:50}
+.sidebar-logo{padding:24px 20px 20px;border-bottom:1px solid rgba(255,255,255,.08)}
+.sidebar-logo-name{font-size:15px;font-weight:700;line-height:1.2}
+.sidebar-logo-sub{font-size:11px;opacity:.4;text-transform:uppercase;letter-spacing:.08em}
+.sidebar-nav{flex:1;padding:16px 0;overflow-y:auto}
+.nav-item{display:flex;align-items:center;gap:11px;padding:11px 20px;font-size:13.5px;font-weight:500;opacity:.65;cursor:pointer;transition:all .15s;border-radius:0}
+.nav-item:hover{opacity:.9;background:rgba(255,255,255,.06)}
+.nav-item.active{opacity:1;background:rgba(255,255,255,.12);border-right:3px solid var(--gold)}
+.nav-item .ni{font-size:17px;width:20px;text-align:center}
+.nav-badge{margin-left:auto;background:var(--rust);color:#fff;font-size:10px;font-weight:700;padding:2px 7px;border-radius:99px}
+.sidebar-footer{padding:16px 20px;border-top:1px solid rgba(255,255,255,.08)}
+.sidebar-user{font-size:12px;opacity:.5}
+
+/* ── MAIN ── */
+.main{margin-left:var(--sidebar);flex:1;display:flex;flex-direction:column}
+.topbar{background:#fff;border-bottom:1px solid var(--border);padding:0 28px;height:58px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:40}
+.topbar-title{font-size:17px;font-weight:700}
+.topbar-actions{display:flex;align-items:center;gap:10px}
+.content{padding:28px;flex:1}
+
+/* ── PAGES ── */
+.page{display:none}.page.active{display:block}
+
+/* ── BUTTONS ── */
+.btn{padding:9px 16px;border-radius:6px;font-size:13px;font-weight:600;border:none;cursor:pointer;display:inline-flex;align-items:center;gap:7px;transition:filter .15s,transform .1s}
+.btn:active{transform:translateY(1px)}
+.btn-primary{background:var(--forest);color:#fff}.btn-primary:hover{filter:brightness(1.1)}
+.btn-rust{background:var(--rust);color:#fff}.btn-rust:hover{filter:brightness(1.08)}
+.btn-ghost{background:transparent;color:var(--muted);border:1.5px solid var(--border-2)}.btn-ghost:hover{background:var(--cream)}
+.btn-red{background:var(--red);color:#fff}.btn-red:hover{filter:brightness(1.08)}
+.btn-sm{padding:6px 12px;font-size:12px}
+.btn-gold{background:var(--gold);color:var(--ink)}.btn-gold:hover{filter:brightness(1.08)}
+
+/* ── CARDS ── */
+.card{background:#fff;border:1px solid var(--border);border-radius:10px;padding:20px}
+.card-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px}
+.card-title{font-size:15px;font-weight:700}
+
+/* ── STATS ── */
+.stats-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:24px}
+.stat-card{background:#fff;border:1px solid var(--border);border-radius:10px;padding:20px}
+.stat-icon{font-size:24px;margin-bottom:10px}
+.stat-n{font-size:28px;font-weight:800;line-height:1;margin-bottom:4px}
+.stat-l{font-size:12px;color:var(--muted)}
+.stat-delta{font-size:11px;margin-top:6px;font-weight:600}
+.delta-up{color:var(--green)}.delta-down{color:var(--red)}
+
+/* ── TABLE ── */
+.table-wrap{overflow-x:auto}
+table{width:100%;border-collapse:collapse}
+th{text-align:left;padding:10px 14px;font-size:11.5px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);border-bottom:1.5px solid var(--border);white-space:nowrap}
+td{padding:12px 14px;border-bottom:1px solid var(--border);font-size:13.5px;vertical-align:middle}
+tr:last-child td{border-bottom:0}
+tr:hover td{background:#fafaf8}
+.td-img{width:64px;height:48px;object-fit:cover;border-radius:6px;background:var(--cream)}
+.td-img-ph{width:64px;height:48px;background:var(--cream);border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:20px}
+
+/* ── BADGE ── */
+.badge{display:inline-flex;align-items:center;gap:5px;padding:3px 9px;border-radius:99px;font-size:11px;font-weight:600}
+.badge-green{background:var(--green-l);color:var(--green)}
+.badge-red{background:var(--red-l);color:var(--red)}
+.badge-gold{background:var(--gold-l);color:var(--gold)}
+.badge-blue{background:var(--blue-l);color:var(--blue)}
+.badge-muted{background:var(--cream);color:var(--muted)}
+.bdot{width:5px;height:5px;border-radius:50%;background:currentColor}
+
+/* ── MODAL ── */
+.modal-bg{position:fixed;inset:0;background:rgba(14,15,12,.5);z-index:200;display:none;align-items:center;justify-content:center;padding:20px}
+.modal-bg.open{display:flex}
+.modal{background:#fff;border-radius:14px;width:100%;max-width:580px;max-height:90vh;overflow-y:auto;box-shadow:0 32px 80px rgba(0,0,0,.2)}
+.modal-header{display:flex;align-items:center;justify-content:space-between;padding:20px 24px;border-bottom:1px solid var(--border);position:sticky;top:0;background:#fff;z-index:1}
+.modal-title{font-size:16px;font-weight:700}
+.modal-close{background:none;border:none;font-size:22px;cursor:pointer;color:var(--muted);line-height:1}
+.modal-body{padding:24px}
+.modal-footer{padding:16px 24px;border-top:1px solid var(--border);display:flex;justify-content:flex-end;gap:10px;position:sticky;bottom:0;background:#fff}
+
+/* ── FORM ── */
+.form-row{display:grid;gap:14px;margin-bottom:14px}
+.form-row-2{grid-template-columns:1fr 1fr}
+.form-row-3{grid-template-columns:1fr 1fr 1fr}
+.form-group{display:flex;flex-direction:column;gap:5px}
+.form-label{font-size:12px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.06em}
+.form-input,.form-select,.form-textarea{background:#f8f7f4;border:1.5px solid var(--border-2);border-radius:6px;padding:10px 12px;font-size:14px;color:var(--ink);outline:none;transition:border-color .15s;width:100%}
+.form-input:focus,.form-select:focus,.form-textarea:focus{border-color:var(--forest);background:#fff}
+.form-textarea{resize:vertical;min-height:80px}
+.form-hint{font-size:11.5px;color:var(--muted);margin-top:3px}
+
+/* ── TOGGLE ── */
+.toggle-wrap{display:flex;align-items:center;justify-content:space-between;padding:14px 0;border-bottom:1px solid var(--border)}
+.toggle-wrap:last-child{border-bottom:0}
+.toggle-info h4{font-size:14px;font-weight:600;margin-bottom:2px}
+.toggle-info p{font-size:12.5px;color:var(--muted)}
+.toggle{position:relative;width:44px;height:24px;flex-shrink:0}
+.toggle input{opacity:0;width:0;height:0;position:absolute}
+.toggle-slider{position:absolute;inset:0;background:#cbd5e1;border-radius:99px;cursor:pointer;transition:background .2s}
+.toggle-slider::before{content:'';position:absolute;width:18px;height:18px;left:3px;top:3px;background:#fff;border-radius:50%;transition:transform .2s;box-shadow:0 1px 3px rgba(0,0,0,.2)}
+.toggle input:checked+.toggle-slider{background:var(--forest)}
+.toggle input:checked+.toggle-slider::before{transform:translateX(20px)}
+
+/* ── LEADS ── */
+.lead-card{background:#fff;border:1px solid var(--border);border-radius:10px;padding:16px;margin-bottom:10px;display:flex;align-items:flex-start;gap:14px}
+.lead-type-icon{width:40px;height:40px;border-radius:8px;display:grid;place-items:center;font-size:18px;flex-shrink:0}
+.lti-contact{background:var(--blue-l)}
+.lti-alert{background:var(--gold-l)}
+.lti-retoma{background:var(--rust-l)}
+.lead-info{flex:1}
+.lead-name{font-size:14px;font-weight:600}
+.lead-meta{font-size:12.5px;color:var(--muted);margin-top:2px}
+.lead-time{font-size:11.5px;color:var(--muted);white-space:nowrap}
+
+/* ── AI GEN ── */
+.ai-output{background:var(--cream);border:1px solid var(--border-2);border-radius:8px;padding:16px;font-size:14px;line-height:1.7;min-height:120px;white-space:pre-wrap;margin-top:14px}
+.ai-loading{display:flex;align-items:center;gap:10px;color:var(--muted);font-size:13.5px;padding:20px 0}
+.ai-dots{display:flex;gap:4px}
+.ai-dots span{width:6px;height:6px;border-radius:50%;background:var(--muted);animation:dot .8s infinite}
+.ai-dots span:nth-child(2){animation-delay:.15s}
+.ai-dots span:nth-child(3){animation-delay:.3s}
+@keyframes dot{0%,80%,100%{transform:scale(.6);opacity:.4}40%{transform:scale(1);opacity:1}}
+
+/* ── FB POST ── */
+.fb-preview{background:#fff;border:1px solid #dbe1e8;border-radius:10px;overflow:hidden;max-width:480px}
+.fb-header{display:flex;align-items:center;gap:10px;padding:14px}
+.fb-avatar{width:38px;height:38px;border-radius:50%;background:var(--forest);display:grid;place-items:center;color:#fff;font-weight:700;font-size:14px}
+.fb-page{font-size:13.5px;font-weight:600}
+.fb-time{font-size:12px;color:var(--muted)}
+.fb-text{padding:0 14px 12px;font-size:14px;line-height:1.6;white-space:pre-wrap}
+.fb-img{width:100%;height:240px;object-fit:cover;background:var(--cream);display:flex;align-items:center;justify-content:center;font-size:40px}
+.fb-footer{display:flex;gap:16px;padding:10px 14px;border-top:1px solid var(--border);font-size:13px;color:var(--muted)}
+.fb-action{display:flex;align-items:center;gap:6px;cursor:pointer}
+
+/* ── ACTIVITY ── */
+.activity-item{display:flex;gap:12px;padding:10px 0;border-bottom:1px solid var(--border)}
+.activity-item:last-child{border-bottom:0}
+.act-dot{width:8px;height:8px;border-radius:50%;margin-top:5px;flex-shrink:0}
+.act-text{font-size:13.5px;flex:1}
+.act-time{font-size:12px;color:var(--muted);white-space:nowrap}
+
+/* ── EMPTY ── */
+.empty-state{text-align:center;padding:48px 20px;color:var(--muted)}
+.empty-state .es-icon{font-size:40px;margin-bottom:12px}
+.empty-state p{font-size:14px}
+
+/* ── TOAST ── */
+.toast{position:fixed;bottom:24px;right:24px;z-index:999;background:var(--forest);color:#fff;padding:12px 18px;border-radius:8px;font-size:13.5px;font-weight:500;transform:translateY(60px);opacity:0;transition:all .3s;box-shadow:0 8px 24px rgba(26,58,42,.3)}
+.toast.show{transform:translateY(0);opacity:1}
+
+/* ── SEARCH ── */
+.search-input{background:#f8f7f4;border:1.5px solid var(--border-2);border-radius:6px;padding:8px 12px;font-size:13.5px;outline:none;width:240px;transition:border-color .15s}
+.search-input:focus{border-color:var(--forest);background:#fff}
+</style>
+</head>
+<body>
+
+<!-- ── LOGIN ── -->
+<div id="login-screen">
+  <div class="login-box">
+    <div class="login-logo">Autocaravanas Portugal</div>
+    <div class="login-title">Backoffice</div>
+    <div class="login-sub">Acesso restrito — equipa interna</div>
+    <input class="login-input" type="password" id="login-pw" placeholder="Password" onkeydown="if(event.key==='Enter')doLogin()">
+    <button class="login-btn" onclick="doLogin()">Entrar →</button>
+    <div class="login-err" id="login-err">Password incorrecta</div>
+  </div>
+</div>
+
+<!-- ── APP ── -->
+<div id="app">
+  <div class="layout">
+
+    <!-- SIDEBAR -->
+    <nav class="sidebar">
+      <div class="sidebar-logo">
+        <div class="sidebar-logo-name">Autocaravanas PT</div>
+        <div class="sidebar-logo-sub">Backoffice</div>
+      </div>
+      <div class="sidebar-nav">
+        <div class="nav-item active" data-page="dashboard" onclick="goto('dashboard',this)"><span class="ni">📊</span>Dashboard</div>
+        <div class="nav-item" data-page="stock" onclick="goto('stock',this)"><span class="ni">🚐</span>Stock público</div>
+        <div class="nav-item" data-page="leads" onclick="goto('leads',this)"><span class="ni">👥</span>Leads <span class="nav-badge" id="leads-badge">0</span></div>
+        <div class="nav-item" data-page="facebook" onclick="goto('facebook',this)"><span class="ni">📘</span>Facebook</div>
+        <div class="nav-item" data-page="ai" onclick="goto('ai',this)"><span class="ni">🤖</span>Gerador IA</div>
+        <div class="nav-item" data-page="settings" onclick="goto('settings',this)"><span class="ni">⚙️</span>Configurações</div>
+      </div>
+      <div class="sidebar-footer">
+        <div class="sidebar-user">Sessão activa</div>
+        <button class="btn btn-ghost btn-sm" style="margin-top:8px;width:100%" onclick="logout()">Sair</button>
+      </div>
+    </nav>
+
+    <!-- MAIN -->
+    <div class="main">
+      <div class="topbar">
+        <div class="topbar-title" id="page-title">Dashboard</div>
+        <div class="topbar-actions">
+          <span id="topbar-date" style="font-size:12.5px;color:var(--muted)"></span>
+          <a href="index.html" target="_blank" class="btn btn-ghost btn-sm">🌐 Ver site</a>
+        </div>
+      </div>
+
+      <div class="content">
+
+        <!-- ── DASHBOARD ── -->
+        <div class="page active" id="page-dashboard">
+          <div class="stats-grid">
+            <div class="stat-card"><div class="stat-icon">🚐</div><div class="stat-n" id="s-stock">0</div><div class="stat-l">Viaturas no stock público</div><div class="stat-delta delta-up" id="s-stock-d"></div></div>
+            <div class="stat-card"><div class="stat-icon">👥</div><div class="stat-n" id="s-leads">0</div><div class="stat-l">Leads totais</div><div class="stat-delta delta-up" id="s-leads-d"></div></div>
+            <div class="stat-card"><div class="stat-icon">🔔</div><div class="stat-n" id="s-alerts">0</div><div class="stat-l">Alertas activos</div><div class="stat-delta"></div></div>
+            <div class="stat-card"><div class="stat-icon">🔄</div><div class="stat-n" id="s-retomas">0</div><div class="stat-l">Pedidos de retoma</div><div class="stat-delta"></div></div>
+          </div>
+          <div style="display:grid;grid-template-columns:1.5fr 1fr;gap:16px">
+            <div class="card">
+              <div class="card-header"><div class="card-title">Actividade recente</div></div>
+              <div id="activity-list"></div>
+            </div>
+            <div class="card">
+              <div class="card-header"><div class="card-title">Leads de hoje</div></div>
+              <div id="today-leads"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ── STOCK ── -->
+        <div class="page" id="page-stock">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px">
+            <input class="search-input" placeholder="🔍 Pesquisar viaturas..." oninput="filterTable(this.value,'stock-tbody','tr')">
+            <button class="btn btn-primary" onclick="openAddCar()">＋ Adicionar viatura</button>
+          </div>
+          <div class="card" style="padding:0">
+            <div class="table-wrap">
+              <table>
+                <thead><tr><th>Foto</th><th>Título</th><th>Tipologia</th><th>Ano</th><th>Km</th><th>Preço</th><th>Estado</th><th>Acções</th></tr></thead>
+                <tbody id="stock-tbody"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- ── LEADS ── -->
+        <div class="page" id="page-leads">
+          <div style="display:flex;gap:10px;margin-bottom:20px;flex-wrap:wrap">
+            <button class="btn btn-ghost active-filter" onclick="filterLeads('all',this)">Todos</button>
+            <button class="btn btn-ghost" onclick="filterLeads('contact',this)">📞 Contactos</button>
+            <button class="btn btn-ghost" onclick="filterLeads('alert',this)">🔔 Alertas</button>
+            <button class="btn btn-ghost" onclick="filterLeads('retoma',this)">🔄 Retomas</button>
+            <input class="search-input" placeholder="🔍 Pesquisar leads..." style="margin-left:auto" oninput="searchLeads(this.value)">
+          </div>
+          <div id="leads-list"></div>
+        </div>
+
+        <!-- ── FACEBOOK ── -->
+        <div class="page" id="page-facebook">
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px">
+            <div>
+              <div class="card" style="margin-bottom:16px">
+                <div class="card-header"><div class="card-title">Publicar no Facebook</div></div>
+                <div class="form-group" style="margin-bottom:14px">
+                  <label class="form-label">Seleccionar viatura</label>
+                  <select class="form-select" id="fb-car-select" onchange="updateFbPreview()">
+                    <option value="">— Escolher do stock —</option>
+                  </select>
+                </div>
+                <div class="form-group" style="margin-bottom:14px">
+                  <label class="form-label">Texto da publicação</label>
+                  <textarea class="form-textarea" id="fb-text" rows="6" placeholder="Texto gerado automaticamente ao seleccionar viatura..." oninput="updateFbPreview()"></textarea>
+                </div>
+                <div class="form-group" style="margin-bottom:16px">
+                  <label class="form-label">Publicar em</label>
+                  <select class="form-select" id="fb-target">
+                    <option value="grupo50k">Grupo 50k membros</option>
+                    <option value="grupo11k">Grupo 11k membros</option>
+                    <option value="pagina">Página pública</option>
+                  </select>
+                </div>
+                <button class="btn btn-primary" onclick="publishFacebook()" style="width:100%">📘 Publicar agora</button>
+                <p style="font-size:11.5px;color:var(--muted);margin-top:8px;text-align:center">Necessita de ter o Facebook conectado nas Configurações</p>
+              </div>
+              <div class="card">
+                <div class="card-header"><div class="card-title">Publicações recentes</div></div>
+                <div id="fb-history"></div>
+              </div>
+            </div>
+            <div>
+              <div class="card-title" style="margin-bottom:12px;font-size:14px;font-weight:700">Pré-visualização</div>
+              <div class="fb-preview" id="fb-preview">
+                <div class="fb-header">
+                  <div class="fb-avatar">AP</div>
+                  <div><div class="fb-page">Autocaravanas Portugal</div><div class="fb-time">Agora · 🌐</div></div>
+                </div>
+                <div class="fb-text" id="fb-preview-text">Seleccione uma viatura para pré-visualizar a publicação.</div>
+                <div class="fb-img" id="fb-preview-img">🚐</div>
+                <div class="fb-footer">
+                  <div class="fb-action">👍 Gosto</div>
+                  <div class="fb-action">💬 Comentar</div>
+                  <div class="fb-action">↗️ Partilhar</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ── AI ── -->
+        <div class="page" id="page-ai">
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px">
+            <div class="card">
+              <div class="card-header"><div class="card-title">🤖 Gerador de anúncios com IA</div></div>
+              <div class="form-group" style="margin-bottom:14px">
+                <label class="form-label">Seleccionar viatura</label>
+                <select class="form-select" id="ai-car-select">
+                  <option value="">— Escolher do stock —</option>
+                </select>
+              </div>
+              <div class="form-row form-row-2">
+                <div class="form-group">
+                  <label class="form-label">Plataforma</label>
+                  <select class="form-select" id="ai-platform">
+                    <option>OLX</option>
+                    <option>CustoJusto</option>
+                    <option>Facebook</option>
+                    <option>Website</option>
+                    <option>StandVirtual</option>
+                  </select>
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Tom</label>
+                  <select class="form-select" id="ai-tone">
+                    <option>Profissional</option>
+                    <option>Descontraído</option>
+                    <option>Urgente</option>
+                  </select>
+                </div>
+              </div>
+              <div class="form-group" style="margin-bottom:16px">
+                <label class="form-label">Detalhes extra (opcional)</label>
+                <textarea class="form-textarea" id="ai-extra" placeholder="ex: recentemente revisada, novos pneus, interior impecável..."></textarea>
+              </div>
+              <button class="btn btn-primary" onclick="generateAI()" style="width:100%" id="ai-btn">✨ Gerar anúncio</button>
+            </div>
+            <div class="card">
+              <div class="card-header">
+                <div class="card-title">Resultado</div>
+                <button class="btn btn-ghost btn-sm" onclick="copyAI()" id="ai-copy-btn" style="display:none">📋 Copiar</button>
+              </div>
+              <div id="ai-result"><div class="empty-state"><div class="es-icon">🤖</div><p>Seleccione uma viatura e clique em Gerar</p></div></div>
+            </div>
+          </div>
+          <div class="card" style="margin-top:16px">
+            <div class="card-header"><div class="card-title">Histórico de anúncios gerados</div></div>
+            <div id="ai-history"><div class="empty-state"><div class="es-icon">📝</div><p>Nenhum anúncio gerado ainda</p></div></div>
+          </div>
+        </div>
+
+        <!-- ── SETTINGS ── -->
+        <div class="page" id="page-settings">
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px">
+            <div class="card">
+              <div class="card-header"><div class="card-title">Secções do website</div></div>
+              <p style="font-size:13px;color:var(--muted);margin-bottom:16px">Activar ou desactivar secções visíveis no site público.</p>
+              <div id="site-toggles"></div>
+            </div>
+            <div class="card">
+              <div class="card-header"><div class="card-title">Integrações</div></div>
+              <div class="form-group" style="margin-bottom:14px">
+                <label class="form-label">WhatsApp (número)</label>
+                <input class="form-input" id="cfg-wa" placeholder="+351 9XX XXX XXX">
+                <div class="form-hint">Número que aparece no botão WhatsApp do site</div>
+              </div>
+              <div class="form-group" style="margin-bottom:14px">
+                <label class="form-label">Facebook Page ID</label>
+                <input class="form-input" id="cfg-fb" placeholder="ID da página ou grupo">
+              </div>
+              <div class="form-group" style="margin-bottom:14px">
+                <label class="form-label">Email de notificações</label>
+                <input class="form-input" id="cfg-email" placeholder="email@exemplo.com">
+                <div class="form-hint">Recebe cópia de cada lead recebido</div>
+              </div>
+              <div class="form-group" style="margin-bottom:14px">
+                <label class="form-label">Alterar password</label>
+                <input class="form-input" type="password" id="cfg-pw" placeholder="Nova password">
+              </div>
+              <div class="form-group" style="margin-bottom:16px">
+                <label class="form-label">🤖 Anthropic API Key (Gerador IA)</label>
+                <input class="form-input" type="password" id="cfg-apikey" placeholder="sk-ant-api03-...">
+                <div class="form-hint">Necessária para gerar anúncios com IA. Guardada só neste browser. Obter em <a href="https://console.anthropic.com/settings/keys" target="_blank" style="color:var(--rust)">console.anthropic.com</a></div>
+              </div>
+              <button class="btn btn-primary" onclick="saveSettings()">Guardar configurações</button>
+            </div>
+          </div>
+          <div class="card" style="margin-top:16px">
+            <div class="card-header"><div class="card-title">API Backend (Caravan Hunter)</div></div>
+            <p style="font-size:13px;color:var(--muted);margin-bottom:16px">Futuramente poderá importar viaturas directamente do Caravan Hunter para o stock público.</p>
+            <div style="display:flex;align-items:center;gap:12px">
+              <input class="form-input" value="http://178.104.200.214:8002" style="max-width:320px" disabled>
+              <span class="badge badge-muted">🔒 Privado — não exposto</span>
+              <button class="btn btn-ghost btn-sm" disabled>Importar do CH (em breve)</button>
+            </div>
+          </div>
+        </div>
+
+      </div><!-- /content -->
+    </div><!-- /main -->
+  </div>
+</div>
+
+<!-- ── MODAL VIATURA ── -->
+<div class="modal-bg" id="car-modal">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title" id="car-modal-title">Adicionar viatura</div>
+      <button class="modal-close" onclick="closeModal('car-modal')">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-row form-row-1">
+        <div class="form-group">
+          <label class="form-label">Título *</label>
+          <input class="form-input" id="car-title" placeholder="ex: Adria Matrix 600 SC">
+        </div>
+      </div>
+      <div class="form-row form-row-3">
+        <div class="form-group">
+          <label class="form-label">Marca</label>
+          <input class="form-input" id="car-brand" placeholder="Adria">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Ano</label>
+          <input class="form-input" type="number" id="car-year" placeholder="2019">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Km</label>
+          <input class="form-input" type="number" id="car-km" placeholder="45000">
+        </div>
+      </div>
+      <div class="form-row form-row-3">
+        <div class="form-group">
+          <label class="form-label">Tipologia</label>
+          <select class="form-select" id="car-tipo">
+            <option value="">—</option>
+            <option>Perfilada</option><option>Integral</option><option>Capucine</option>
+            <option>Van</option><option>Camper</option><option>Autovivenda</option><option>Caravana</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Preço (€)</label>
+          <input class="form-input" type="number" id="car-price" placeholder="28900">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Negociável?</label>
+          <select class="form-select" id="car-neg">
+            <option value="false">Não</option>
+            <option value="true">Sim</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-row form-row-2">
+        <div class="form-group">
+          <label class="form-label">Localização</label>
+          <input class="form-input" id="car-location" placeholder="Braga">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Estado</label>
+          <select class="form-select" id="car-status">
+            <option value="active">Activa</option>
+            <option value="reserved">Reservada</option>
+            <option value="sold">Vendida</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-group" style="margin-bottom:14px">
+        <label class="form-label">URL da imagem principal</label>
+        <input class="form-input" id="car-img" placeholder="https://...">
+        <div class="form-hint">Cole o URL directo de uma foto da viatura</div>
+      </div>
+      <div class="form-group" style="margin-bottom:14px">
+        <label class="form-label">Link do anúncio original (opcional)</label>
+        <input class="form-input" id="car-url" placeholder="https://www.olx.pt/...">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Descrição / Notas internas</label>
+        <textarea class="form-textarea" id="car-desc" placeholder="Notas sobre o estado, equipamento, origem..."></textarea>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('car-modal')">Cancelar</button>
+      <button class="btn btn-primary" onclick="saveCar()">Guardar viatura</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── MODAL LEAD ── -->
+<div class="modal-bg" id="lead-modal">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title" id="lead-modal-title">Detalhes do lead</div>
+      <button class="modal-close" onclick="closeModal('lead-modal')">×</button>
+    </div>
+    <div class="modal-body" id="lead-modal-body"></div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('lead-modal')">Fechar</button>
+      <a id="lead-wa-btn" href="#" target="_blank" class="btn btn-primary">💬 Responder WhatsApp</a>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ── STATE ──
+const PASS = 'caravan2026';
+let state = {
+  stock: [],
+  leads: [],
+  settings: {
+    wa: '+351927402278', fb: '', email: '',
+    sections: { stock: true, tipologias: true, retomas: true, alertas: true, faq: true, cta: true }
+  },
+  aiHistory: [],
+  fbHistory: [],
+  editingCarId: null,
+  leadsFilter: 'all'
+};
+
+// ── PERSISTENCE ──
+function save() { try { localStorage.setItem('bo_state', JSON.stringify(state)); } catch(e){} }
+function load() {
+  try {
+    const s = localStorage.getItem('bo_state');
+    if (s) state = {...state, ...JSON.parse(s)};
+  } catch(e){}
+}
+
+// ── LOGIN ──
+function doLogin() {
+  const pw = document.getElementById('login-pw').value;
+  if (pw === PASS || pw === (state.settings.customPw||'')) {
+    document.getElementById('login-screen').style.display='none';
+    document.getElementById('app').style.display='block';
+    init();
+  } else {
+    document.getElementById('login-err').style.display='block';
+  }
+}
+function logout() {
+  document.getElementById('app').style.display='none';
+  document.getElementById('login-screen').style.display='flex';
+  document.getElementById('login-pw').value='';
+}
+
+// ── INIT ──
+function init() {
+  load();
+  renderDate();
+  renderDashboard();
+  renderStockTable();
+  renderLeads();
+  renderFbHistory();
+  renderAiHistory();
+  renderSettings();
+  populateCarSelects();
+  updateBadge();
+}
+
+function renderDate() {
+  const d = new Date();
+  document.getElementById('topbar-date').textContent = d.toLocaleDateString('pt-PT',{weekday:'long',day:'numeric',month:'long'});
+}
+
+// ── NAV ──
+function goto(page, el) {
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+  document.getElementById('page-'+page).classList.add('active');
+  el.classList.add('active');
+  const titles={dashboard:'Dashboard',stock:'Stock público',leads:'Leads & Contactos',facebook:'Publicar no Facebook',ai:'Gerador de Anúncios IA',settings:'Configurações'};
+  document.getElementById('page-title').textContent = titles[page]||page;
+}
+
+// ── TOAST ──
+function toast(msg) {
+  const t=document.getElementById('toast');
+  t.textContent=msg; t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'),3500);
+}
+
+// ── MODAL ──
+function openModal(id) { document.getElementById(id).classList.add('open'); }
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+
+// ── DASHBOARD ──
+function renderDashboard() {
+  document.getElementById('s-stock').textContent = state.stock.filter(c=>c.status==='active').length;
+  document.getElementById('s-leads').textContent = state.leads.length;
+  document.getElementById('s-alerts').textContent = state.leads.filter(l=>l.type==='alert').length;
+  document.getElementById('s-retomas').textContent = state.leads.filter(l=>l.type==='retoma').length;
+  document.getElementById('s-leads-d').textContent = '↑ ' + state.leads.filter(l=>isToday(l.date)).length + ' hoje';
+
+  // Activity
+  const al = document.getElementById('activity-list');
+  const recent = [...state.leads].reverse().slice(0,8);
+  if(!recent.length){ al.innerHTML='<div class="empty-state"><div class="es-icon">🌱</div><p>Ainda sem actividade</p></div>'; }
+  else al.innerHTML = recent.map(l=>`
+    <div class="activity-item">
+      <div class="act-dot" style="background:${l.type==='alert'?'var(--gold)':l.type==='retoma'?'var(--rust)':'var(--blue)'}"></div>
+      <div class="act-text"><strong>${l.name||'Anónimo'}</strong> — ${typeLabel(l.type)}</div>
+      <div class="act-time">${timeAgo(l.date)}</div>
+    </div>`).join('');
+
+  // Today leads
+  const tl = document.getElementById('today-leads');
+  const today = state.leads.filter(l=>isToday(l.date));
+  if(!today.length){ tl.innerHTML='<div class="empty-state"><div class="es-icon">☀️</div><p>Nenhum lead hoje ainda</p></div>'; }
+  else tl.innerHTML = today.map(l=>`
+    <div class="activity-item">
+      <div class="act-dot" style="background:${l.type==='alert'?'var(--gold)':l.type==='retoma'?'var(--rust)':'var(--blue)'}"></div>
+      <div class="act-text">${l.name||'Anónimo'} · ${l.contact||'—'}</div>
+      <div class="act-time">${typeLabel(l.type)}</div>
+    </div>`).join('');
+}
+
+function typeLabel(t) { return {contact:'Contacto',alert:'Alerta',retoma:'Retoma'}[t]||t; }
+function isToday(d) { return d && new Date(d).toDateString()===new Date().toDateString(); }
+function timeAgo(d) {
+  if(!d) return '—';
+  const diff = Date.now()-new Date(d).getTime();
+  const m=Math.floor(diff/60000);
+  if(m<1) return 'agora';
+  if(m<60) return m+'min';
+  const h=Math.floor(m/60);
+  if(h<24) return h+'h';
+  return Math.floor(h/24)+'d';
+}
+
+// ── STOCK ──
+function renderStockTable() {
+  const tbody = document.getElementById('stock-tbody');
+  if(!state.stock.length){
+    tbody.innerHTML='<tr><td colspan="8"><div class="empty-state"><div class="es-icon">🚐</div><p>Sem viaturas. Adicione a primeira!</p></div></td></tr>';
+    return;
+  }
+  tbody.innerHTML = state.stock.map((c,i)=>`
+    <tr data-search="${(c.title+c.brand+c.location).toLowerCase()}">
+      <td>${c.image?`<img src="${c.image}" class="td-img" onerror="this.outerHTML='<div class=td-img-ph>🚐</div>'">`:'<div class="td-img-ph">🚐</div>'}</td>
+      <td><strong>${c.title||'—'}</strong>${c.location?`<br><span style="font-size:11.5px;color:var(--muted)">📍 ${c.location}</span>`:''}</td>
+      <td>${c.tipo?`<span class="badge badge-blue">${c.tipo}</span>`:'—'}</td>
+      <td>${c.year||'—'}</td>
+      <td>${c.km?Number(c.km).toLocaleString('pt-PT')+' km':'—'}</td>
+      <td style="font-weight:700;color:var(--forest)">${c.price?Number(c.price).toLocaleString('pt-PT')+' €':'Sob consulta'}</td>
+      <td>${statusBadge(c.status)}</td>
+      <td>
+        <div style="display:flex;gap:6px">
+          <button class="btn btn-ghost btn-sm" onclick="editCar(${i})">✏️</button>
+          <button class="btn btn-ghost btn-sm" onclick="postToFb(${i})">📘</button>
+          <button class="btn btn-red btn-sm" onclick="deleteCar(${i})">🗑️</button>
+        </div>
+      </td>
+    </tr>`).join('');
+  populateCarSelects();
+}
+
+function statusBadge(s) {
+  return {active:'<span class="badge badge-green"><span class="bdot"></span>Activa</span>',reserved:'<span class="badge badge-gold"><span class="bdot"></span>Reservada</span>',sold:'<span class="badge badge-red"><span class="bdot"></span>Vendida</span>'}[s]||'—';
+}
+
+function openAddCar() {
+  state.editingCarId=null;
+  document.getElementById('car-modal-title').textContent='Adicionar viatura';
+  ['car-title','car-brand','car-year','car-km','car-price','car-location','car-img','car-url','car-desc'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('car-tipo').value='';
+  document.getElementById('car-neg').value='false';
+  document.getElementById('car-status').value='active';
+  openModal('car-modal');
+}
+
+function editCar(i) {
+  const c=state.stock[i];
+  state.editingCarId=i;
+  document.getElementById('car-modal-title').textContent='Editar viatura';
+  document.getElementById('car-title').value=c.title||'';
+  document.getElementById('car-brand').value=c.brand||'';
+  document.getElementById('car-year').value=c.year||'';
+  document.getElementById('car-km').value=c.km||'';
+  document.getElementById('car-price').value=c.price||'';
+  document.getElementById('car-location').value=c.location||'';
+  document.getElementById('car-img').value=c.image||'';
+  document.getElementById('car-url').value=c.url||'';
+  document.getElementById('car-desc').value=c.desc||'';
+  document.getElementById('car-tipo').value=c.tipo||'';
+  document.getElementById('car-neg').value=c.neg||'false';
+  document.getElementById('car-status').value=c.status||'active';
+  openModal('car-modal');
+}
+
+function saveCar() {
+  const car = {
+    title: document.getElementById('car-title').value.trim(),
+    brand: document.getElementById('car-brand').value.trim(),
+    year: document.getElementById('car-year').value,
+    km: document.getElementById('car-km').value,
+    price: document.getElementById('car-price').value,
+    location: document.getElementById('car-location').value.trim(),
+    image: document.getElementById('car-img').value.trim(),
+    url: document.getElementById('car-url').value.trim(),
+    desc: document.getElementById('car-desc').value.trim(),
+    tipo: document.getElementById('car-tipo').value,
+    neg: document.getElementById('car-neg').value,
+    status: document.getElementById('car-status').value,
+    addedAt: new Date().toISOString()
+  };
+  if(!car.title){ toast('❌ Título obrigatório'); return; }
+  if(state.editingCarId!==null) state.stock[state.editingCarId]=car;
+  else state.stock.unshift(car);
+  save(); renderStockTable(); renderDashboard(); closeModal('car-modal');
+  toast(state.editingCarId!==null?'✅ Viatura actualizada':'✅ Viatura adicionada ao stock');
+}
+
+function deleteCar(i) {
+  if(!confirm('Remover esta viatura do stock público?')) return;
+  state.stock.splice(i,1);
+  save(); renderStockTable(); renderDashboard(); toast('🗑️ Viatura removida');
+}
+
+function filterTable(q, tbodyId, rowTag) {
+  const rows = document.getElementById(tbodyId).querySelectorAll(rowTag);
+  rows.forEach(r=>r.style.display=r.dataset.search?.includes(q.toLowerCase())?'':'none');
+}
+
+// ── LEADS ──
+function addLead(lead) {
+  state.leads.push({...lead, date: new Date().toISOString(), id: Date.now()});
+  save(); updateBadge();
+}
+
+function updateBadge() {
+  const newLeads = state.leads.filter(l=>!l.read).length;
+  const badge = document.getElementById('leads-badge');
+  badge.textContent = newLeads||'0';
+  badge.style.background = newLeads ? 'var(--rust)' : 'rgba(255,255,255,.2)';
+}
+
+function renderLeads() {
+  const container = document.getElementById('leads-list');
+  let leads = [...state.leads].reverse();
+  if(state.leadsFilter!=='all') leads = leads.filter(l=>l.type===state.leadsFilter);
+  if(!leads.length){
+    container.innerHTML='<div class="empty-state"><div class="es-icon">👥</div><p>Nenhum lead encontrado</p></div>';
+    return;
+  }
+  container.innerHTML = leads.map(l=>`
+    <div class="lead-card" id="lead-${l.id}">
+      <div class="lead-type-icon lti-${l.type||'contact'}">${{contact:'📞',alert:'🔔',retoma:'🔄'}[l.type||'contact']}</div>
+      <div class="lead-info">
+        <div class="lead-name">${l.name||'Anónimo'} ${!l.read?'<span class="badge badge-blue" style="font-size:10px;padding:2px 7px">Novo</span>':''}</div>
+        <div class="lead-meta">${l.contact||''} ${l.detail?'· '+l.detail:''}</div>
+      </div>
+      <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px">
+        <div class="lead-time">${timeAgo(l.date)}</div>
+        <div style="display:flex;gap:6px">
+          <button class="btn btn-ghost btn-sm" onclick="viewLead(${l.id})">Ver</button>
+          <a href="https://wa.me/${(l.contact||'').replace(/\D/g,'')}" target="_blank" class="btn btn-primary btn-sm">💬</a>
+        </div>
+      </div>
+    </div>`).join('');
+}
+
+function filterLeads(type, btn) {
+  state.leadsFilter=type;
+  document.querySelectorAll('.active-filter').forEach(b=>{b.classList.remove('active-filter');b.style.background='';b.style.borderColor='';b.style.color='';});
+  btn.classList.add('active-filter');
+  btn.style.background='var(--ink)';btn.style.color='#fff';btn.style.borderColor='var(--ink)';
+  renderLeads();
+}
+
+function searchLeads(q) {
+  document.querySelectorAll('#leads-list .lead-card').forEach(c=>{
+    const text=(c.textContent||'').toLowerCase();
+    c.style.display=text.includes(q.toLowerCase())?'':'none';
+  });
+}
+
+function viewLead(id) {
+  const l=state.leads.find(x=>x.id===id);
+  if(!l)return;
+  l.read=true; save(); updateBadge(); renderLeads();
+  document.getElementById('lead-modal-title').textContent=typeLabel(l.type||'contact');
+  document.getElementById('lead-modal-body').innerHTML=`
+    <div class="form-group" style="margin-bottom:12px"><label class="form-label">Nome</label><div style="padding:10px 12px;background:#f8f7f4;border-radius:6px">${l.name||'—'}</div></div>
+    <div class="form-group" style="margin-bottom:12px"><label class="form-label">Contacto</label><div style="padding:10px 12px;background:#f8f7f4;border-radius:6px">${l.contact||'—'}</div></div>
+    ${l.detail?`<div class="form-group" style="margin-bottom:12px"><label class="form-label">Detalhe</label><div style="padding:10px 12px;background:#f8f7f4;border-radius:6px">${l.detail}</div></div>`:''}
+    ${l.extra?`<div class="form-group" style="margin-bottom:12px"><label class="form-label">Info adicional</label><div style="padding:10px 12px;background:#f8f7f4;border-radius:6px">${l.extra}</div></div>`:''}
+    <div class="form-group"><label class="form-label">Recebido</label><div style="padding:10px 12px;background:#f8f7f4;border-radius:6px">${new Date(l.date).toLocaleString('pt-PT')}</div></div>`;
+  document.getElementById('lead-wa-btn').href=`https://wa.me/${(l.contact||'').replace(/\D/g,'')}`;
+  openModal('lead-modal');
+}
+
+// ── FACEBOOK ──
+function populateCarSelects() {
+  const opts = `<option value="">— Escolher do stock —</option>` + state.stock.filter(c=>c.status==='active').map((c,i)=>`<option value="${i}">${c.title||'Sem título'} — ${c.year||'?'} — ${c.price?Number(c.price).toLocaleString('pt-PT')+'€':'Sob consulta'}</option>`).join('');
+  ['fb-car-select','ai-car-select'].forEach(id=>{ const el=document.getElementById(id); if(el) el.innerHTML=opts; });
+}
+
+function updateFbPreview() {
+  const idx=document.getElementById('fb-car-select').value;
+  const car=idx!==''?state.stock[parseInt(idx)]:null;
+  const textEl=document.getElementById('fb-preview-text');
+  const imgEl=document.getElementById('fb-preview-img');
+  if(!car){ textEl.textContent='Seleccione uma viatura para pré-visualizar.'; imgEl.innerHTML='🚐'; imgEl.style.cssText=''; return; }
+  const text=document.getElementById('fb-text').value||generateFbText(car);
+  document.getElementById('fb-text').value=text;
+  textEl.textContent=text;
+  if(car.image){ imgEl.innerHTML=`<img src="${car.image}" style="width:100%;height:240px;object-fit:cover" onerror="this.parentElement.innerHTML='🚐'">`; }
+  else imgEl.innerHTML='🚐';
+}
+
+function generateFbText(car) {
+  return `🚐 ${car.title||'Autocaravana'}${car.year?' ('+car.year+')':''}\n\n${car.tipo?'📋 Tipologia: '+car.tipo+'\n':''}${car.year?'📅 Ano: '+car.year+'\n':''}${car.km?'🛣️ Km: '+Number(car.km).toLocaleString('pt-PT')+' km\n':''}${car.location?'📍 Localização: '+car.location+'\n':''}\n💶 Preço: ${car.price?Number(car.price).toLocaleString('pt-PT')+' €':'Sob consulta'}${car.neg==='true'?' (negociável)':''}\n\n✅ Viatura verificada, com garantia e documentação.\n\n📞 Informações e visita: ${state.settings.wa||'+351927402278'}`;
+}
+
+function publishFacebook() {
+  const idx=document.getElementById('fb-car-select').value;
+  if(idx===''){toast('❌ Seleccione uma viatura');return;}
+  const car=state.stock[parseInt(idx)];
+  const target=document.getElementById('fb-target').value;
+  const text=document.getElementById('fb-text').value;
+  state.fbHistory.unshift({car:car.title,target,text,date:new Date().toISOString()});
+  save(); renderFbHistory();
+  toast('📘 Publicação registada! (Conecte o Facebook nas Configurações para publicar automaticamente)');
+}
+
+function postToFb(i) {
+  goto('facebook',document.querySelector('[data-page="facebook"]'));
+  setTimeout(()=>{
+    document.getElementById('fb-car-select').value=i;
+    updateFbPreview();
+  },100);
+}
+
+function renderFbHistory() {
+  const el=document.getElementById('fb-history');
+  if(!state.fbHistory.length){el.innerHTML='<div class="empty-state"><div class="es-icon">📘</div><p>Nenhuma publicação ainda</p></div>';return;}
+  el.innerHTML=state.fbHistory.slice(0,5).map(h=>`
+    <div class="activity-item">
+      <div class="act-dot" style="background:var(--blue)"></div>
+      <div class="act-text"><strong>${h.car}</strong> → ${h.target}</div>
+      <div class="act-time">${timeAgo(h.date)}</div>
+    </div>`).join('');
+}
+
+// ── AI ──
+async function generateAI() {
+  const idx=document.getElementById('ai-car-select').value;
+  if(idx===''){toast('❌ Seleccione uma viatura');return;}
+  const apiKey=state.settings.apiKey||'';
+  if(!apiKey){toast('❌ Configure a API Key nas Configurações');goto('settings',document.querySelector('[data-page="settings"]'));return;}
+  const car=state.stock[parseInt(idx)];
+  const platform=document.getElementById('ai-platform').value;
+  const tone=document.getElementById('ai-tone').value;
+  const extra=document.getElementById('ai-extra').value;
+  const btn=document.getElementById('ai-btn');
+  const result=document.getElementById('ai-result');
+  btn.disabled=true;btn.textContent='A gerar...';
+  result.innerHTML=`<div class="ai-loading"><div class="ai-dots"><span></span><span></span><span></span></div>A gerar anúncio com IA...</div>`;
+  try {
+    const prompt=`Cria um anúncio de venda de autocaravana para ${platform} em português de Portugal.
+Tom: ${tone}.
+Viatura: ${car.title||'Autocaravana'}
+Marca: ${car.brand||'—'}, Ano: ${car.year||'—'}, Km: ${car.km?Number(car.km).toLocaleString('pt-PT')+' km':'—'}
+Tipologia: ${car.tipo||'—'}, Preço: ${car.price?Number(car.price).toLocaleString('pt-PT')+'€':'Sob consulta'}${car.neg==='true'?' (negociável)':''}
+Localização: ${car.location||'Portugal'}
+${extra?'Detalhes extra: '+extra:''}
+Inclui emojis adequados, pontos de destaque e um call-to-action claro. Máximo 300 palavras.`;
+
+    const res=await fetch('https://api.anthropic.com/v1/messages',{
+      method:'POST',
+      headers:{'Content-Type':'application/json','x-api-key':apiKey,'anthropic-version':'2023-06-01'},
+      body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:1000,messages:[{role:'user',content:prompt}]})
+    });
+    const data=await res.json();
+    if(data.error){throw new Error(data.error.message||'Erro API');}
+    const text=data.content?.[0]?.text||'Erro ao gerar';
+    result.innerHTML=`<div class="ai-output">${text}</div>`;
+    document.getElementById('ai-copy-btn').style.display='';
+    state.aiHistory.unshift({car:car.title,platform,text,date:new Date().toISOString()});
+    save(); renderAiHistory();
+  } catch(e) {
+    result.innerHTML=`<div class="ai-output" style="color:var(--red)">Erro: ${e.message||'Verifique a API key nas Configurações.'}</div>`;
+  }
+  btn.disabled=false;btn.textContent='✨ Gerar anúncio';
+}
+
+function copyAI() {
+  const text=document.querySelector('.ai-output')?.textContent;
+  if(text){navigator.clipboard.writeText(text).then(()=>toast('📋 Copiado!'));}
+}
+
+function renderAiHistory() {
+  const el=document.getElementById('ai-history');
+  if(!state.aiHistory.length){el.innerHTML='<div class="empty-state"><div class="es-icon">📝</div><p>Nenhum anúncio gerado ainda</p></div>';return;}
+  el.innerHTML=state.aiHistory.slice(0,5).map(h=>`
+    <div class="activity-item">
+      <div class="act-dot" style="background:var(--forest)"></div>
+      <div class="act-text"><strong>${h.car}</strong> → ${h.platform}</div>
+      <div class="act-time">${timeAgo(h.date)}</div>
+    </div>`).join('');
+}
+
+// ── SETTINGS ──
+function renderSettings() {
+  document.getElementById('cfg-wa').value=state.settings.wa||'';
+  document.getElementById('cfg-apikey').value=state.settings.apiKey||'';
+  document.getElementById('cfg-fb').value=state.settings.fb||'';
+  document.getElementById('cfg-email').value=state.settings.email||'';
+  const toggles=document.getElementById('site-toggles');
+  const labels={stock:'Secção de Stock',tipologias:'Secção de Tipologias',retomas:'Retomas & Trocas',alertas:'Alertas de Pesquisa',faq:'Perguntas Frequentes',cta:'Call-to-Action Final'};
+  toggles.innerHTML=Object.entries(state.settings.sections).map(([k,v])=>`
+    <div class="toggle-wrap">
+      <div class="toggle-info"><h4>${labels[k]||k}</h4><p>${v?'Visível no site':'Oculta no site'}</p></div>
+      <label class="toggle"><input type="checkbox" ${v?'checked':''} onchange="toggleSection('${k}',this.checked)"><span class="toggle-slider"></span></label>
+    </div>`).join('');
+}
+
+function toggleSection(key, val) {
+  state.settings.sections[key]=val; save();
+  document.querySelectorAll('#site-toggles .toggle-info p')[Object.keys(state.settings.sections).indexOf(key)].textContent=val?'Visível no site':'Oculta no site';
+  toast(val?'✅ Secção activada':'⚫ Secção desactivada');
+}
+
+function saveSettings() {
+  state.settings.wa=document.getElementById('cfg-wa').value;
+  state.settings.fb=document.getElementById('cfg-fb').value;
+  state.settings.email=document.getElementById('cfg-email').value;
+  const newPw=document.getElementById('cfg-pw').value;
+  if(newPw) state.settings.customPw=newPw;
+  const newKey=document.getElementById('cfg-apikey').value.trim();
+  if(newKey) state.settings.apiKey=newKey;
+  save(); toast('✅ Configurações guardadas');
+}
+
+// ── SAMPLE DATA (demo) ──
+function seedDemoData() {
+  if(state.leads.length) return;
+  const sampleLeads=[
+    {id:1001,type:'contact',name:'João Silva',contact:'+351912345678',detail:'Interessado em Adria Matrix 2019',date:new Date(Date.now()-3600000).toISOString(),read:false},
+    {id:1002,type:'alert',name:'Maria Santos',contact:'+351961234567',detail:'Alerta: Chausson Capucine até 30k€',extra:'2015+, máx 80k km',date:new Date(Date.now()-7200000).toISOString(),read:false},
+    {id:1003,type:'retoma',name:'Carlos Ferreira',contact:'+351931234567',detail:'Hobby 560 CFE 2017, 65.000 km',extra:'Quer trocar por Integral',date:new Date(Date.now()-86400000).toISOString(),read:true},
+  ];
+  sampleLeads.forEach(l=>state.leads.push(l));
+  save(); updateBadge();
+}
+
+seedDemoData();
+</script>
+</body>
+</html>
