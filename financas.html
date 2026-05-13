@@ -1,0 +1,882 @@
+<!DOCTYPE html>
+<html lang="pt-PT">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Finanças — Marcus & Daniel</title>
+<style>
+:root{
+  --ink:#0e0f0c;--paper:#f5f0e8;--cream:#ede8dc;--sand:#d4c9b0;
+  --rust:#c4521a;--rust-l:rgba(196,82,26,.1);
+  --forest:#1a3a2a;--forest-l:rgba(26,58,42,.09);
+  --gold:#b8952a;--gold-l:rgba(184,149,42,.1);
+  --muted:#7a7265;--border:rgba(14,15,12,.1);--border-2:rgba(14,15,12,.18);
+  --red:#dc2626;--red-l:rgba(220,38,38,.09);
+  --green:#16a34a;--green-l:rgba(22,163,74,.09);
+  --blue:#1d4ed8;--blue-l:rgba(29,78,216,.09);
+  --sidebar:220px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#f8f7f4;color:var(--ink);font-family:'Segoe UI',system-ui,sans-serif;font-size:14px;line-height:1.5}
+a{color:inherit;text-decoration:none}button,input,select,textarea{font-family:inherit}
+
+#login-screen{position:fixed;inset:0;background:var(--forest);display:flex;align-items:center;justify-content:center;z-index:9999}
+.login-box{background:#fff;border-radius:16px;padding:40px;width:360px;text-align:center;box-shadow:0 32px 80px rgba(0,0,0,.3)}
+.login-logo{font-size:13px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:8px}
+.login-title{font-size:24px;font-weight:700;margin-bottom:4px}
+.login-sub{font-size:13px;color:var(--muted);margin-bottom:28px}
+.login-input{width:100%;background:#f8f7f4;border:1.5px solid var(--border-2);border-radius:6px;padding:12px 14px;font-size:14px;outline:none;margin-bottom:12px;transition:border-color .15s}
+.login-input:focus{border-color:var(--forest)}
+.login-btn{width:100%;background:var(--forest);color:#fff;padding:13px;border-radius:6px;font-size:14px;font-weight:600;border:none;cursor:pointer;transition:filter .15s;margin-top:4px}
+.login-btn:hover{filter:brightness(1.15)}
+.login-err{color:var(--red);font-size:12.5px;margin-top:8px;display:none}
+
+#app{display:none}
+.layout{display:flex;min-height:100vh}
+
+.sidebar{width:var(--sidebar);background:var(--forest);color:#fff;display:flex;flex-direction:column;position:fixed;top:0;left:0;bottom:0;z-index:50}
+.sidebar-logo{padding:24px 20px 20px;border-bottom:1px solid rgba(255,255,255,.08)}
+.sidebar-logo-name{font-size:15px;font-weight:700;line-height:1.2}
+.sidebar-logo-sub{font-size:11px;opacity:.4;text-transform:uppercase;letter-spacing:.08em}
+.sidebar-nav{flex:1;padding:16px 0}
+.nav-item{display:flex;align-items:center;gap:11px;padding:11px 20px;font-size:13.5px;font-weight:500;opacity:.65;cursor:pointer;transition:all .15s}
+.nav-item:hover{opacity:.9;background:rgba(255,255,255,.06)}
+.nav-item.active{opacity:1;background:rgba(255,255,255,.12);border-right:3px solid var(--gold)}
+.ni{font-size:17px;width:20px;text-align:center}
+.sidebar-footer{padding:16px 20px;border-top:1px solid rgba(255,255,255,.08)}
+.sidebar-user{font-size:12px;opacity:.5}
+
+.main{margin-left:var(--sidebar);flex:1;display:flex;flex-direction:column}
+.import-banner{background:var(--blue-l);border-bottom:2px solid rgba(29,78,216,.2);padding:10px 28px;display:none;align-items:center;gap:12px}
+.topbar{background:#fff;border-bottom:1px solid var(--border);padding:0 28px;height:58px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:40}
+.topbar-title{font-size:17px;font-weight:700}
+.topbar-actions{display:flex;align-items:center;gap:10px}
+.content{padding:28px;flex:1}
+
+.page{display:none}.page.active{display:block}
+
+.btn{padding:9px 16px;border-radius:6px;font-size:13px;font-weight:600;border:none;cursor:pointer;display:inline-flex;align-items:center;gap:7px;transition:filter .15s,transform .1s}
+.btn:active{transform:translateY(1px)}
+.btn-primary{background:var(--forest);color:#fff}.btn-primary:hover{filter:brightness(1.1)}
+.btn-rust{background:var(--rust);color:#fff}.btn-rust:hover{filter:brightness(1.08)}
+.btn-ghost{background:transparent;color:var(--muted);border:1.5px solid var(--border-2)}.btn-ghost:hover{background:var(--cream)}
+.btn-red{background:var(--red);color:#fff}.btn-red:hover{filter:brightness(1.08)}
+.btn-sm{padding:6px 12px;font-size:12px}
+
+.card{background:#fff;border:1px solid var(--border);border-radius:10px;padding:20px}
+.card-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px}
+.card-title{font-size:15px;font-weight:700}
+
+.stats-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:16px}
+.stats-grid-2{display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;margin-bottom:24px}
+.stat-card{background:#fff;border:1px solid var(--border);border-radius:10px;padding:20px}
+.stat-icon{font-size:22px;margin-bottom:10px}
+.stat-n{font-size:26px;font-weight:800;line-height:1;margin-bottom:4px}
+.stat-l{font-size:12px;color:var(--muted)}
+
+.badge{display:inline-flex;align-items:center;gap:5px;padding:3px 9px;border-radius:99px;font-size:11px;font-weight:600}
+.badge-green{background:var(--green-l);color:var(--green)}
+.badge-red{background:var(--red-l);color:var(--red)}
+.badge-gold{background:var(--gold-l);color:var(--gold)}
+.badge-blue{background:var(--blue-l);color:var(--blue)}
+.badge-muted{background:var(--cream);color:var(--muted)}
+.bdot{width:5px;height:5px;border-radius:50%;background:currentColor}
+
+.modal-bg{position:fixed;inset:0;background:rgba(14,15,12,.5);z-index:200;display:none;align-items:center;justify-content:center;padding:20px}
+.modal-bg.open{display:flex}
+.modal{background:#fff;border-radius:14px;width:100%;max-width:560px;max-height:90vh;overflow-y:auto;box-shadow:0 32px 80px rgba(0,0,0,.2)}
+.modal-lg{max-width:700px}
+.modal-header{display:flex;align-items:center;justify-content:space-between;padding:20px 24px;border-bottom:1px solid var(--border);position:sticky;top:0;background:#fff;z-index:1}
+.modal-title{font-size:16px;font-weight:700}
+.modal-close{background:none;border:none;font-size:22px;cursor:pointer;color:var(--muted);line-height:1}
+.modal-body{padding:24px}
+.modal-footer{padding:16px 24px;border-top:1px solid var(--border);display:flex;justify-content:flex-end;gap:10px;position:sticky;bottom:0;background:#fff}
+
+.form-row{display:grid;gap:14px;margin-bottom:14px}
+.form-row-2{grid-template-columns:1fr 1fr}
+.form-row-3{grid-template-columns:1fr 1fr 1fr}
+.form-group{display:flex;flex-direction:column;gap:5px}
+.form-label{font-size:12px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.06em}
+.form-input,.form-select{background:#f8f7f4;border:1.5px solid var(--border-2);border-radius:6px;padding:10px 12px;font-size:14px;color:var(--ink);outline:none;transition:border-color .15s;width:100%}
+.form-input:focus,.form-select:focus{border-color:var(--forest);background:#fff}
+.form-hint{font-size:11.5px;color:var(--muted);margin-top:3px}
+
+.toast{position:fixed;bottom:24px;right:24px;z-index:999;background:var(--forest);color:#fff;padding:12px 18px;border-radius:8px;font-size:13.5px;font-weight:500;transform:translateY(60px);opacity:0;transition:all .3s;box-shadow:0 8px 24px rgba(26,58,42,.3)}
+.toast.show{transform:translateY(0);opacity:1}
+
+.activity-item{display:flex;gap:12px;padding:10px 0;border-bottom:1px solid var(--border);align-items:center}
+.activity-item:last-child{border-bottom:0}
+.act-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.act-text{font-size:13.5px;flex:1}
+
+.empty-state{text-align:center;padding:40px 20px;color:var(--muted)}
+.empty-state .es-icon{font-size:36px;margin-bottom:10px}
+
+.car-card{background:#fff;border:1px solid var(--border);border-radius:10px;padding:18px;margin-bottom:12px;cursor:pointer;transition:border-color .15s,box-shadow .15s}
+.car-card:hover{border-color:var(--forest);box-shadow:0 4px 16px rgba(26,58,42,.08)}
+
+.exp-row{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px;border-radius:8px;border:1px solid var(--border);margin-bottom:8px}
+.exp-paid{background:rgba(22,163,74,.04);border-color:rgba(22,163,74,.25)}
+
+.inv-col{background:#fff;border:1px solid var(--border);border-radius:10px;padding:20px}
+.inv-total{font-size:24px;font-weight:800;color:var(--forest);margin-bottom:16px;padding-bottom:14px;border-bottom:1px solid var(--border)}
+
+table{width:100%;border-collapse:collapse}
+th{text-align:left;padding:10px 14px;font-size:11.5px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);border-bottom:1.5px solid var(--border);white-space:nowrap}
+td{padding:11px 14px;border-bottom:1px solid var(--border);font-size:13.5px;vertical-align:middle}
+tr:last-child td{border-bottom:0}
+tr:hover td{background:#fafaf8}
+.table-wrap{overflow-x:auto}
+</style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div id="login-screen">
+  <div class="login-box">
+    <div class="login-logo">Autocaravanas Portugal</div>
+    <div class="login-title">Finanças</div>
+    <div class="login-sub">Marcus & Daniel — Sociedade 50/50</div>
+    <select class="login-input" id="login-user">
+      <option value="">Seleccionar utilizador</option>
+      <option value="marcus">Marcus</option>
+      <option value="daniel">Daniel</option>
+    </select>
+    <input class="login-input" type="password" id="login-pw" placeholder="Password" onkeydown="if(event.key==='Enter')doLogin()">
+    <button class="login-btn" onclick="doLogin()">Entrar →</button>
+    <div class="login-err" id="login-err">Utilizador ou password incorrectos</div>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="app">
+  <div class="layout">
+
+    <nav class="sidebar">
+      <div class="sidebar-logo">
+        <div class="sidebar-logo-name">M &amp; D Finanças</div>
+        <div class="sidebar-logo-sub">Sociedade 50/50</div>
+      </div>
+      <div class="sidebar-nav">
+        <div class="nav-item active" onclick="goto('dashboard',this)"><span class="ni">📊</span>Dashboard</div>
+        <div class="nav-item" onclick="goto('investimentos',this)"><span class="ni">💰</span>Investimentos</div>
+        <div class="nav-item" onclick="goto('caravanas',this)"><span class="ni">🚐</span>Caravanas</div>
+        <div class="nav-item" onclick="goto('relatorio',this)"><span class="ni">📄</span>Relatório</div>
+      </div>
+      <div class="sidebar-footer">
+        <div class="sidebar-user">Sessão: <span id="user-name"></span></div>
+        <button class="btn btn-ghost btn-sm" style="margin-top:8px;width:100%;color:#fff;border-color:rgba(255,255,255,.2)" onclick="logout()">Sair</button>
+      </div>
+    </nav>
+
+    <div class="main">
+      <div class="import-banner" id="import-banner">
+        <span style="font-size:13.5px">📥 <strong><span id="import-count">0</span> viatura(s)</strong> vendida(s) no backoffice aguardam importação</span>
+        <button class="btn btn-primary btn-sm" onclick="importFromBackoffice()">Importar agora</button>
+        <button class="btn btn-ghost btn-sm" onclick="document.getElementById('import-banner').style.display='none'">Ignorar</button>
+      </div>
+
+      <div class="topbar">
+        <div class="topbar-title" id="page-title">Dashboard</div>
+        <div class="topbar-actions">
+          <a href="backoffice.html" class="btn btn-ghost btn-sm">← Backoffice</a>
+        </div>
+      </div>
+
+      <div class="content">
+
+        <!-- DASHBOARD -->
+        <div class="page active" id="page-dashboard">
+          <div class="stats-grid">
+            <div class="stat-card">
+              <div class="stat-icon">📈</div>
+              <div class="stat-n" id="db-gross" style="color:var(--green)">€ 0,00</div>
+              <div class="stat-l">Lucro Bruto (50%)</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-icon">🧾</div>
+              <div class="stat-n" id="db-expenses" style="color:var(--red)">€ 0,00</div>
+              <div class="stat-l">Despesas (50%)</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-icon">💶</div>
+              <div class="stat-n" id="db-net">€ 0,00</div>
+              <div class="stat-l">Lucro Líquido (50%)</div>
+            </div>
+          </div>
+          <div class="stats-grid-2" style="grid-template-columns:1fr 1fr 1fr">
+            <div class="stat-card">
+              <div class="stat-icon">👤</div>
+              <div class="stat-n" id="db-marcus-inv" style="font-size:20px">€ 0,00</div>
+              <div class="stat-l">Investimento Marcus</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-icon">👤</div>
+              <div class="stat-n" id="db-daniel-inv" style="font-size:20px">€ 0,00</div>
+              <div class="stat-l">Investimento Daniel</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-icon">🚐</div>
+              <div class="stat-n" id="db-cars" style="font-size:20px">0</div>
+              <div class="stat-l">Viaturas — <span id="db-sold" style="color:var(--green)">0</span> vendidas</div>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-header"><div class="card-title">Viaturas</div></div>
+            <div id="db-caravan-list"></div>
+          </div>
+        </div>
+
+        <!-- INVESTIMENTOS -->
+        <div class="page" id="page-investimentos">
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px">
+            <div class="inv-col">
+              <div class="card-header">
+                <div>
+                  <div class="card-title">👤 Marcus</div>
+                  <div class="inv-total" id="inv-total-marcus">€ 0,00</div>
+                </div>
+                <button class="btn btn-primary btn-sm" onclick="openAddInvestment('Marcus')">＋ Registar</button>
+              </div>
+              <div id="inv-list-marcus"></div>
+            </div>
+            <div class="inv-col">
+              <div class="card-header">
+                <div>
+                  <div class="card-title">👤 Daniel</div>
+                  <div class="inv-total" id="inv-total-daniel">€ 0,00</div>
+                </div>
+                <button class="btn btn-primary btn-sm" onclick="openAddInvestment('Daniel')">＋ Registar</button>
+              </div>
+              <div id="inv-list-daniel"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- CARAVANAS -->
+        <div class="page" id="page-caravanas">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px">
+            <div style="font-size:13px;color:var(--muted)">Clique numa viatura para ver despesas e detalhes</div>
+            <button class="btn btn-primary" onclick="openAddCaravan()">＋ Adicionar viatura</button>
+          </div>
+          <div id="car-list"></div>
+        </div>
+
+        <!-- RELATORIO -->
+        <div class="page" id="page-relatorio">
+          <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:20px">
+            <div class="stat-card"><div class="stat-l" style="margin-bottom:6px">Lucro Bruto (50%)</div><div class="stat-n" id="rel-gross" style="color:var(--green);font-size:22px">€ 0,00</div></div>
+            <div class="stat-card"><div class="stat-l" style="margin-bottom:6px">Despesas (50%)</div><div class="stat-n" id="rel-expenses" style="color:var(--red);font-size:22px">€ 0,00</div></div>
+            <div class="stat-card"><div class="stat-l" style="margin-bottom:6px">Lucro Líquido (50%)</div><div class="stat-n" id="rel-net" style="font-size:22px">€ 0,00</div></div>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:24px">
+            <div class="stat-card"><div class="stat-l" style="margin-bottom:6px">Investimento Marcus</div><div class="stat-n" id="rel-marcus" style="font-size:20px;color:var(--forest)">€ 0,00</div></div>
+            <div class="stat-card"><div class="stat-l" style="margin-bottom:6px">Investimento Daniel</div><div class="stat-n" id="rel-daniel" style="font-size:20px;color:var(--forest)">€ 0,00</div></div>
+          </div>
+          <div class="card" style="padding:0">
+            <div class="card-header" style="padding:16px 20px"><div class="card-title">Análise por viatura</div></div>
+            <div class="table-wrap">
+              <table>
+                <thead><tr><th>Viatura</th><th>Compra (total)</th><th>Venda (total)</th><th>Despesas (50%)</th><th>Lucro Bruto (50%)</th><th>Lucro Líquido (50%)</th></tr></thead>
+                <tbody id="rel-table-body"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+      </div><!-- /content -->
+    </div><!-- /main -->
+  </div>
+</div>
+
+<!-- MODAL: Investimento -->
+<div class="modal-bg" id="inv-modal">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">Registar Investimento</div>
+      <button class="modal-close" onclick="closeModal('inv-modal')">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-row form-row-2">
+        <div class="form-group">
+          <label class="form-label">Sócio</label>
+          <select class="form-select" id="inv-person">
+            <option value="Marcus">Marcus</option>
+            <option value="Daniel">Daniel</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Valor (€)</label>
+          <input class="form-input" type="number" id="inv-amount" placeholder="5000" step="0.01">
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Data</label>
+          <input class="form-input" type="date" id="inv-date">
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Descrição (opcional)</label>
+        <input class="form-input" id="inv-desc" placeholder="ex: Entrada inicial, reforço de capital...">
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('inv-modal')">Cancelar</button>
+      <button class="btn btn-primary" onclick="saveInvestment()">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: Adicionar/Editar Viatura -->
+<div class="modal-bg" id="car-modal">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title" id="car-modal-title">Adicionar Viatura</div>
+      <button class="modal-close" onclick="closeModal('car-modal')">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group" style="margin-bottom:14px">
+        <label class="form-label">Nome / Modelo *</label>
+        <input class="form-input" id="car-name" placeholder="ex: Adria Matrix 600 SC 2019">
+      </div>
+      <div class="form-row form-row-2">
+        <div class="form-group">
+          <label class="form-label">Preço de Compra Total (€) *</label>
+          <input class="form-input" type="number" id="car-purchase-price" placeholder="25000" step="0.01">
+          <div class="form-hint">Cada um paga 50% = metade deste valor</div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Data de Compra</label>
+          <input class="form-input" type="date" id="car-purchase-date">
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('car-modal')">Cancelar</button>
+      <button class="btn btn-primary" onclick="saveCaravan()">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: Detalhe da Viatura -->
+<div class="modal-bg" id="det-modal">
+  <div class="modal modal-lg">
+    <div class="modal-header">
+      <div>
+        <div class="modal-title" id="det-car-name"></div>
+        <div style="font-size:12px;color:var(--muted);margin-top:2px">Compra: <span id="det-car-purchase"></span></div>
+      </div>
+      <button class="modal-close" onclick="closeModal('det-modal')">×</button>
+    </div>
+    <div class="modal-body">
+      <div id="det-sale-section"></div>
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+        <div style="font-size:14px;font-weight:700">Despesas</div>
+        <button class="btn btn-rust btn-sm" onclick="openAddExpense()">＋ Despesa</button>
+      </div>
+      <div id="det-exp-summary" style="display:none;align-items:center;justify-content:space-between;padding:8px 12px;background:var(--cream);border-radius:6px;margin-bottom:12px;font-size:12.5px">
+        <span id="det-exp-paid-count" style="color:var(--green);font-weight:600"></span>
+        <span id="det-exp-unpaid" style="color:var(--red);font-weight:600"></span>
+      </div>
+      <div id="det-expenses"></div>
+    </div>
+    <div class="modal-footer" style="justify-content:space-between">
+      <div style="display:flex;gap:8px">
+        <button class="btn btn-ghost btn-sm" id="det-edit-btn">✏️ Editar</button>
+        <button class="btn btn-red btn-sm" id="det-delete-btn">🗑️ Eliminar</button>
+      </div>
+      <button class="btn btn-ghost" onclick="closeModal('det-modal')">Fechar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: Marcar como Vendida -->
+<div class="modal-bg" id="sell-modal">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">💰 Registar Venda</div>
+      <button class="modal-close" onclick="closeModal('sell-modal')">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-row form-row-2">
+        <div class="form-group">
+          <label class="form-label">Preço de Venda Total (€) *</label>
+          <input class="form-input" type="number" id="sell-price" placeholder="32000" step="0.01">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Data de Venda</label>
+          <input class="form-input" type="date" id="sell-date">
+        </div>
+      </div>
+      <div style="padding:12px;background:var(--gold-l);border-radius:8px;font-size:13px">
+        <strong>Nota:</strong> O sistema calcula automaticamente 50% do lucro para cada sócio.
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('sell-modal')">Cancelar</button>
+      <button class="btn btn-rust" onclick="saveSale()">Registar venda</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: Adicionar Despesa -->
+<div class="modal-bg" id="exp-modal">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">Adicionar Despesa</div>
+      <button class="modal-close" onclick="closeModal('exp-modal')">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-row form-row-2">
+        <div class="form-group">
+          <label class="form-label">Categoria</label>
+          <select class="form-select" id="exp-category"></select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Valor Total (€) *</label>
+          <input class="form-input" type="number" id="exp-amount" placeholder="350" step="0.01">
+          <div class="form-hint">Cada sócio paga 50% = metade</div>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Descrição *</label>
+          <input class="form-input" id="exp-description" placeholder="ex: Substituição de travões">
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Data</label>
+        <input class="form-input" type="date" id="exp-date">
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('exp-modal')">Cancelar</button>
+      <button class="btn btn-primary" onclick="saveExpense()">Adicionar</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const USERS = { marcus: 'marcus123', daniel: 'daniel123' };
+const CATEGORIES = [
+  {key:'reparacoes',label:'Reparações',icon:'🔧'},
+  {key:'pintura',label:'Pintura',icon:'🎨'},
+  {key:'mecanica',label:'Mecânica',icon:'⚙️'},
+  {key:'eletrica',label:'Elétrica',icon:'⚡'},
+  {key:'baterias',label:'Baterias',icon:'🔋'},
+  {key:'pneus',label:'Pneus',icon:'🛞'},
+  {key:'limpeza',label:'Limpeza',icon:'🧼'},
+  {key:'estofos',label:'Estofos/Interior',icon:'🛋️'},
+  {key:'documentacao',label:'Documentação',icon:'📄'},
+  {key:'transporte',label:'Transporte',icon:'🚚'},
+  {key:'inspecao',label:'Inspeção',icon:'✅'},
+  {key:'outros',label:'Outros',icon:'📦'}
+];
+
+let state = { caravans: [], investments: [] };
+let currentUser = null;
+let editingCaravanId = null;
+let activeCaravanId = null;
+
+// ── PERSISTENCE ──
+function save() {
+  localStorage.setItem('cf_caravans', JSON.stringify(state.caravans));
+  localStorage.setItem('cf_investments', JSON.stringify(state.investments));
+}
+function load() {
+  try {
+    const c = localStorage.getItem('cf_caravans');
+    const i = localStorage.getItem('cf_investments');
+    if (c) state.caravans = JSON.parse(c);
+    if (i) state.investments = JSON.parse(i);
+  } catch(e) {}
+}
+
+// ── LOGIN ──
+function doLogin() {
+  const user = document.getElementById('login-user').value;
+  const pw = document.getElementById('login-pw').value;
+  const err = document.getElementById('login-err');
+  err.style.display = 'none';
+  if (!user) { err.textContent = 'Seleccione um utilizador'; err.style.display = 'block'; return; }
+  if (USERS[user] !== pw) { err.style.display = 'block'; return; }
+  currentUser = user === 'marcus' ? 'Marcus' : 'Daniel';
+  document.getElementById('login-screen').style.display = 'none';
+  document.getElementById('app').style.display = 'block';
+  init();
+}
+function logout() {
+  currentUser = null;
+  document.getElementById('app').style.display = 'none';
+  document.getElementById('login-screen').style.display = 'flex';
+  document.getElementById('login-pw').value = '';
+  document.getElementById('login-user').value = '';
+}
+
+// ── INIT ──
+function init() {
+  load();
+  document.getElementById('user-name').textContent = currentUser;
+  // populate category select
+  document.getElementById('exp-category').innerHTML = CATEGORIES.map(c => `<option value="${c.key}">${c.icon} ${c.label}</option>`).join('');
+  checkImportQueue();
+  renderAll();
+}
+function renderAll() {
+  renderDashboard();
+  renderInvestimentos();
+  renderCaravanas();
+  renderRelatorio();
+}
+
+// ── NAV ──
+function goto(page, el) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById('page-' + page).classList.add('active');
+  el.classList.add('active');
+  const titles = { dashboard:'Dashboard', investimentos:'Investimentos', caravanas:'Caravanas', relatorio:'Relatório' };
+  document.getElementById('page-title').textContent = titles[page] || page;
+}
+
+// ── TOAST / MODAL ──
+function toast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 3500);
+}
+function openModal(id) { document.getElementById(id).classList.add('open'); }
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+
+// ── UTILS ──
+function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2); }
+function fmt(n) { return Number(n||0).toLocaleString('pt-PT', {minimumFractionDigits:2, maximumFractionDigits:2}); }
+function fmtDate(d) { return d ? new Date(d).toLocaleDateString('pt-PT') : '—'; }
+function todayStr() { return new Date().toISOString().split('T')[0]; }
+function setEl(id, val) { const el = document.getElementById(id); if (el) el.textContent = val; }
+
+// ── CALCULATIONS ──
+function calcCaravan(car) {
+  const expenses50 = (car.expenses||[]).reduce((s,e) => s + e.totalAmount/2, 0);
+  const paidExpenses50 = (car.expenses||[]).filter(e=>e.paid).reduce((s,e) => s + e.totalAmount/2, 0);
+  const grossProfit = car.salePrice != null ? (car.salePrice - car.purchasePrice) / 2 : null;
+  const netProfit = grossProfit != null ? grossProfit - expenses50 : null;
+  return { expenses50, paidExpenses50, grossProfit, netProfit };
+}
+function calcTotals() {
+  const sold = state.caravans.filter(c => c.salePrice != null);
+  const grossProfit = sold.reduce((s,c) => s + (c.salePrice - c.purchasePrice)/2, 0);
+  const expenses50 = state.caravans.reduce((s,c) => s + (c.expenses||[]).reduce((ss,e) => ss + e.totalAmount/2, 0), 0);
+  const netProfit = grossProfit - expenses50;
+  const marcusInv = state.investments.filter(i=>i.person==='Marcus').reduce((s,i)=>s+i.amount,0);
+  const danielInv = state.investments.filter(i=>i.person==='Daniel').reduce((s,i)=>s+i.amount,0);
+  return { grossProfit, expenses50, netProfit, marcusInv, danielInv, soldCount: sold.length, totalCars: state.caravans.length };
+}
+
+// ── IMPORT FROM BACKOFFICE ──
+function checkImportQueue() {
+  try {
+    const q = JSON.parse(localStorage.getItem('bo_sold_vehicles')||'[]');
+    const n = q.filter(v=>!v.importedToFinancas).length;
+    const banner = document.getElementById('import-banner');
+    if (n > 0) { banner.style.display='flex'; document.getElementById('import-count').textContent=n; }
+    else banner.style.display='none';
+  } catch(e) {}
+}
+function importFromBackoffice() {
+  try {
+    const q = JSON.parse(localStorage.getItem('bo_sold_vehicles')||'[]');
+    let imported = 0;
+    q.forEach(v => {
+      if (v.importedToFinancas) return;
+      if (state.caravans.find(c=>c.backofficeId===v.id)) { v.importedToFinancas=true; return; }
+      state.caravans.push({
+        id: uid(), backofficeId: v.id,
+        name: v.title||'Viatura sem nome',
+        purchasePrice: parseFloat(v.purchasePrice)||0,
+        purchaseDate: v.saleDate||todayStr(),
+        salePrice: parseFloat(v.salePrice)||null,
+        saleDate: v.saleDate||null,
+        expenses: [], createdBy: currentUser, importedFromBackoffice: true
+      });
+      v.importedToFinancas = true;
+      imported++;
+    });
+    localStorage.setItem('bo_sold_vehicles', JSON.stringify(q));
+    save(); renderAll();
+    document.getElementById('import-banner').style.display='none';
+    toast(`✅ ${imported} viatura(s) importada(s)`);
+  } catch(e) { toast('❌ Erro ao importar: '+e.message); }
+}
+
+// ── DASHBOARD ──
+function renderDashboard() {
+  const t = calcTotals();
+  setEl('db-gross', '€ '+fmt(t.grossProfit));
+  setEl('db-expenses', '€ '+fmt(t.expenses50));
+  const netEl = document.getElementById('db-net');
+  if (netEl) { netEl.textContent = '€ '+fmt(t.netProfit); netEl.style.color = t.netProfit >= 0 ? 'var(--green)' : 'var(--red)'; }
+  setEl('db-marcus-inv', '€ '+fmt(t.marcusInv));
+  setEl('db-daniel-inv', '€ '+fmt(t.danielInv));
+  setEl('db-cars', t.totalCars);
+  setEl('db-sold', t.soldCount);
+  const list = document.getElementById('db-caravan-list');
+  if (!state.caravans.length) {
+    list.innerHTML='<div class="empty-state"><div class="es-icon">🚐</div><p>Nenhuma viatura registada. Adicione em Caravanas.</p></div>'; return;
+  }
+  list.innerHTML = state.caravans.map(car => {
+    const c = calcCaravan(car);
+    const sold = car.salePrice != null;
+    return `<div class="activity-item">
+      <div class="act-dot" style="background:${sold?'var(--green)':'var(--gold)'}"></div>
+      <div class="act-text"><strong>${car.name}</strong>${sold?` · Líquido: <strong style="color:${c.netProfit>=0?'var(--green)':'var(--red)'}">€ ${fmt(c.netProfit)}</strong>`:'&nbsp;<span style="color:var(--muted)">Em stock</span>'}</div>
+      <div>${sold?'<span class="badge badge-green"><span class="bdot"></span>Vendida</span>':'<span class="badge badge-gold"><span class="bdot"></span>Stock</span>'}</div>
+    </div>`;
+  }).join('');
+}
+
+// ── INVESTIMENTOS ──
+function renderInvestimentos() {
+  ['Marcus','Daniel'].forEach(person => {
+    const invs = state.investments.filter(i=>i.person===person);
+    const total = invs.reduce((s,i)=>s+i.amount,0);
+    const key = person.toLowerCase();
+    setEl('inv-total-'+key, '€ '+fmt(total));
+    const list = document.getElementById('inv-list-'+key);
+    if (!invs.length) { list.innerHTML='<div style="text-align:center;padding:24px;color:var(--muted);font-size:13px">Nenhum investimento</div>'; return; }
+    list.innerHTML = [...invs].reverse().map(inv => `
+      <div class="activity-item" style="align-items:flex-start">
+        <div class="act-dot" style="background:var(--forest);margin-top:6px"></div>
+        <div class="act-text">
+          <strong>€ ${fmt(inv.amount)}</strong>${inv.description?' · '+inv.description:''}
+          <div style="font-size:11.5px;color:var(--muted);margin-top:2px">${fmtDate(inv.date)} · por ${inv.createdBy}</div>
+        </div>
+        <button class="btn btn-ghost btn-sm" onclick="deleteInvestment('${inv.id}')" style="color:var(--red);padding:4px 8px">🗑️</button>
+      </div>`).join('');
+  });
+}
+function openAddInvestment(person) {
+  document.getElementById('inv-person').value = person;
+  document.getElementById('inv-amount').value = '';
+  document.getElementById('inv-date').value = todayStr();
+  document.getElementById('inv-desc').value = '';
+  openModal('inv-modal');
+}
+function saveInvestment() {
+  const person = document.getElementById('inv-person').value;
+  const amount = parseFloat(document.getElementById('inv-amount').value);
+  const date = document.getElementById('inv-date').value;
+  const desc = document.getElementById('inv-desc').value.trim();
+  if (!amount || amount <= 0) { toast('❌ Valor inválido'); return; }
+  state.investments.push({ id:uid(), person, amount, date, description:desc, createdBy:currentUser, createdAt:new Date().toISOString() });
+  save(); renderInvestimentos(); renderDashboard(); renderRelatorio();
+  closeModal('inv-modal'); toast('✅ Investimento registado');
+}
+function deleteInvestment(id) {
+  if (!confirm('Remover este investimento?')) return;
+  state.investments = state.investments.filter(i=>i.id!==id);
+  save(); renderInvestimentos(); renderDashboard(); renderRelatorio(); toast('🗑️ Removido');
+}
+
+// ── CARAVANAS ──
+function renderCaravanas() {
+  const list = document.getElementById('car-list');
+  if (!state.caravans.length) { list.innerHTML='<div class="empty-state"><div class="es-icon">🚐</div><p>Nenhuma viatura. Adicione a primeira!</p></div>'; return; }
+  list.innerHTML = state.caravans.map(car => {
+    const c = calcCaravan(car);
+    const sold = car.salePrice != null;
+    return `<div class="car-card" onclick="openCaravanDetail('${car.id}')">
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px">
+        <div style="flex:1;min-width:0">
+          <div style="font-size:15px;font-weight:700;margin-bottom:4px">
+            ${car.name}
+            ${car.importedFromBackoffice?'<span class="badge badge-blue" style="margin-left:6px;font-size:10px">importado</span>':''}
+          </div>
+          <div style="font-size:12.5px;color:var(--muted)">Compra total: € ${fmt(car.purchasePrice)} · ${fmtDate(car.purchaseDate)}</div>
+          ${sold?`<div style="font-size:12.5px;color:var(--muted)">Venda total: € ${fmt(car.salePrice)} · ${fmtDate(car.saleDate)}</div>`:''}
+        </div>
+        <div style="text-align:right;flex-shrink:0">
+          ${sold?`<div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:2px">Lucro líquido (50%)</div>
+          <div style="font-size:22px;font-weight:800;color:${c.netProfit>=0?'var(--green)':'var(--red)'}">€ ${fmt(c.netProfit)}</div>`
+          :'<span class="badge badge-gold"><span class="bdot"></span>Em stock</span>'}
+        </div>
+      </div>
+      <div style="display:flex;gap:16px;margin-top:12px;padding-top:12px;border-top:1px solid var(--border);font-size:12px;color:var(--muted);flex-wrap:wrap">
+        <span>🧾 ${(car.expenses||[]).length} despesa(s) · € ${fmt(c.expenses50)} (50%)</span>
+        ${c.paidExpenses50>0?`<span style="color:var(--green)">✅ Pago: € ${fmt(c.paidExpenses50)}</span>`:''}
+        ${c.expenses50-c.paidExpenses50>0.005?`<span style="color:var(--red)">⏳ Falta: € ${fmt(c.expenses50-c.paidExpenses50)}</span>`:''}
+      </div>
+    </div>`;
+  }).join('');
+}
+function openAddCaravan() {
+  editingCaravanId = null;
+  document.getElementById('car-name').value='';
+  document.getElementById('car-purchase-price').value='';
+  document.getElementById('car-purchase-date').value=todayStr();
+  document.getElementById('car-modal-title').textContent='Adicionar Viatura';
+  openModal('car-modal');
+}
+function saveCaravan() {
+  const name = document.getElementById('car-name').value.trim();
+  const purchasePrice = parseFloat(document.getElementById('car-purchase-price').value);
+  const purchaseDate = document.getElementById('car-purchase-date').value;
+  if (!name) { toast('❌ Nome obrigatório'); return; }
+  if (!purchasePrice || purchasePrice <= 0) { toast('❌ Preço inválido'); return; }
+  if (editingCaravanId) {
+    const car = state.caravans.find(c=>c.id===editingCaravanId);
+    if (car) { car.name=name; car.purchasePrice=purchasePrice; car.purchaseDate=purchaseDate; }
+  } else {
+    state.caravans.push({ id:uid(), name, purchasePrice, purchaseDate, salePrice:null, saleDate:null, expenses:[], createdBy:currentUser, importedFromBackoffice:false });
+  }
+  save(); renderAll(); closeModal('car-modal'); toast('✅ Viatura guardada');
+}
+function openCaravanDetail(id) {
+  activeCaravanId = id;
+  const car = state.caravans.find(c=>c.id===id);
+  if (!car) return;
+  const c = calcCaravan(car);
+  const sold = car.salePrice != null;
+  document.getElementById('det-car-name').textContent = car.name;
+  document.getElementById('det-car-purchase').textContent = `€ ${fmt(car.purchasePrice)} total · ${fmtDate(car.purchaseDate)}`;
+  const saleSection = document.getElementById('det-sale-section');
+  if (sold) {
+    saleSection.innerHTML=`<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;padding:16px;background:var(--green-l);border-radius:8px;margin-bottom:18px;border:1px solid rgba(22,163,74,.2)">
+      <div><div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px">Venda (total)</div><div style="font-size:18px;font-weight:700">€ ${fmt(car.salePrice)}</div><div style="font-size:11.5px;color:var(--muted)">${fmtDate(car.saleDate)}</div></div>
+      <div><div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px">Lucro Bruto (50%)</div><div style="font-size:18px;font-weight:700;color:var(--green)">€ ${fmt(c.grossProfit)}</div></div>
+      <div><div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px">Lucro Líquido (50%)</div><div style="font-size:20px;font-weight:800;color:${c.netProfit>=0?'var(--green)':'var(--red)'}">€ ${fmt(c.netProfit)}</div></div>
+    </div>`;
+  } else {
+    saleSection.innerHTML=`<button class="btn btn-rust" onclick="openSellCaravan('${id}')" style="margin-bottom:18px">💰 Marcar como vendida</button>`;
+  }
+  document.getElementById('det-edit-btn').onclick = () => { closeModal('det-modal'); editingCaravanId=id; document.getElementById('car-name').value=car.name; document.getElementById('car-purchase-price').value=car.purchasePrice; document.getElementById('car-purchase-date').value=car.purchaseDate; document.getElementById('car-modal-title').textContent='Editar Viatura'; openModal('car-modal'); };
+  document.getElementById('det-delete-btn').onclick = () => deleteCaravan(id);
+  renderDetailExpenses(car);
+  openModal('det-modal');
+}
+function renderDetailExpenses(car) {
+  const c = calcCaravan(car);
+  const expDiv = document.getElementById('det-expenses');
+  const summary = document.getElementById('det-exp-summary');
+  if (!(car.expenses||[]).length) {
+    expDiv.innerHTML='<div style="text-align:center;padding:20px;color:var(--muted);font-size:13px">Nenhuma despesa. Clique em ＋ Despesa para adicionar.</div>';
+    summary.style.display='none'; return;
+  }
+  const paidCount = (car.expenses||[]).filter(e=>e.paid).length;
+  const unpaid = c.expenses50 - c.paidExpenses50;
+  summary.style.display='flex';
+  document.getElementById('det-exp-paid-count').textContent = `${paidCount} de ${(car.expenses||[]).length} pagas`;
+  document.getElementById('det-exp-unpaid').textContent = unpaid > 0.005 ? `Faltam: € ${fmt(unpaid)}` : '✅ Tudo pago';
+  document.getElementById('det-exp-unpaid').style.color = unpaid > 0.005 ? 'var(--red)' : 'var(--green)';
+  expDiv.innerHTML = [...(car.expenses||[])].reverse().map(exp => {
+    const cat = CATEGORIES.find(c=>c.key===exp.category)||{icon:'📦',label:'Outros'};
+    return `<div class="exp-row ${exp.paid?'exp-paid':''}" id="exprow-${exp.id}">
+      <div style="display:flex;align-items:center;gap:10px;flex:1;min-width:0">
+        <span style="font-size:20px">${cat.icon}</span>
+        <div style="min-width:0">
+          <div style="font-size:13.5px;font-weight:600">${exp.description}</div>
+          <div style="font-size:11.5px;color:var(--muted)">${cat.label} · ${fmtDate(exp.date)} · ${exp.createdBy}</div>
+        </div>
+      </div>
+      <div style="display:flex;align-items:center;gap:10px;flex-shrink:0">
+        <div style="text-align:right">
+          <div style="font-size:14px;font-weight:700">€ ${fmt(exp.totalAmount/2)}</div>
+          <div style="font-size:11px;color:var(--muted)">de € ${fmt(exp.totalAmount)} total</div>
+        </div>
+        <label style="display:flex;align-items:center;gap:5px;cursor:pointer;font-size:12px;font-weight:600;white-space:nowrap;color:${exp.paid?'var(--green)':'var(--muted)'}">
+          <input type="checkbox" ${exp.paid?'checked':''} onchange="toggleExpensePaid('${car.id}','${exp.id}',this.checked)" style="cursor:pointer;accent-color:var(--green);width:15px;height:15px">
+          ${exp.paid?'Paga':'Pagar'}
+        </label>
+        <button class="btn btn-ghost btn-sm" onclick="deleteExpense('${car.id}','${exp.id}')" style="color:var(--red);padding:4px 8px">🗑️</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+function deleteCaravan(id) {
+  if (!confirm('Eliminar esta viatura e todas as despesas?')) return;
+  state.caravans = state.caravans.filter(c=>c.id!==id);
+  save(); renderAll(); closeModal('det-modal'); toast('🗑️ Viatura eliminada');
+}
+function openSellCaravan(id) {
+  activeCaravanId = id;
+  document.getElementById('sell-price').value='';
+  document.getElementById('sell-date').value=todayStr();
+  openModal('sell-modal');
+}
+function saveSale() {
+  const car = state.caravans.find(c=>c.id===activeCaravanId);
+  if (!car) return;
+  const salePrice = parseFloat(document.getElementById('sell-price').value);
+  const saleDate = document.getElementById('sell-date').value;
+  if (!salePrice||salePrice<=0) { toast('❌ Preço de venda inválido'); return; }
+  car.salePrice=salePrice; car.saleDate=saleDate;
+  save(); renderAll(); closeModal('sell-modal');
+  openCaravanDetail(activeCaravanId); toast('✅ Venda registada');
+}
+
+// ── EXPENSES ──
+function openAddExpense() {
+  document.getElementById('exp-category').value = CATEGORIES[0].key;
+  document.getElementById('exp-description').value='';
+  document.getElementById('exp-amount').value='';
+  document.getElementById('exp-date').value=todayStr();
+  openModal('exp-modal');
+}
+function saveExpense() {
+  const car = state.caravans.find(c=>c.id===activeCaravanId);
+  if (!car) return;
+  const category = document.getElementById('exp-category').value;
+  const description = document.getElementById('exp-description').value.trim();
+  const totalAmount = parseFloat(document.getElementById('exp-amount').value);
+  const date = document.getElementById('exp-date').value;
+  if (!description) { toast('❌ Descrição obrigatória'); return; }
+  if (!totalAmount||totalAmount<=0) { toast('❌ Valor inválido'); return; }
+  if (!car.expenses) car.expenses=[];
+  car.expenses.push({ id:uid(), category, description, totalAmount, date, paid:false, createdBy:currentUser, createdAt:new Date().toISOString() });
+  save(); renderAll(); renderDetailExpenses(car);
+  closeModal('exp-modal'); toast('✅ Despesa adicionada');
+}
+function toggleExpensePaid(caravanId, expenseId, paid) {
+  const car = state.caravans.find(c=>c.id===caravanId);
+  if (!car) return;
+  const exp = (car.expenses||[]).find(e=>e.id===expenseId);
+  if (!exp) return;
+  exp.paid=paid; save(); renderAll(); renderDetailExpenses(car);
+}
+function deleteExpense(caravanId, expenseId) {
+  const car = state.caravans.find(c=>c.id===caravanId);
+  if (!car||!confirm('Remover esta despesa?')) return;
+  car.expenses=(car.expenses||[]).filter(e=>e.id!==expenseId);
+  save(); renderAll(); renderDetailExpenses(car); toast('🗑️ Despesa removida');
+}
+
+// ── RELATÓRIO ──
+function renderRelatorio() {
+  const t = calcTotals();
+  setEl('rel-gross', '€ '+fmt(t.grossProfit));
+  setEl('rel-expenses', '€ '+fmt(t.expenses50));
+  const relNet = document.getElementById('rel-net');
+  if (relNet) { relNet.textContent='€ '+fmt(t.netProfit); relNet.style.color=t.netProfit>=0?'var(--green)':'var(--red)'; }
+  setEl('rel-marcus', '€ '+fmt(t.marcusInv));
+  setEl('rel-daniel', '€ '+fmt(t.danielInv));
+  const tbody = document.getElementById('rel-table-body');
+  if (!state.caravans.length) { tbody.innerHTML='<tr><td colspan="6" style="text-align:center;padding:20px;color:var(--muted)">Nenhuma viatura</td></tr>'; return; }
+  tbody.innerHTML = state.caravans.map(car => {
+    const c = calcCaravan(car);
+    const sold = car.salePrice!=null;
+    return `<tr>
+      <td><strong>${car.name}</strong>${car.importedFromBackoffice?'<br><span style="font-size:10px;color:var(--blue)">importado do backoffice</span>':''}</td>
+      <td>€ ${fmt(car.purchasePrice)}</td>
+      <td>${sold?`€ ${fmt(car.salePrice)}`:'<span style="color:var(--muted)">—</span>'}</td>
+      <td>€ ${fmt(c.expenses50)}</td>
+      <td>${sold?`<strong style="color:${c.grossProfit>=0?'var(--green)':'var(--red)'}">€ ${fmt(c.grossProfit)}</strong>`:'<span style="color:var(--muted)">—</span>'}</td>
+      <td>${sold?`<strong style="color:${c.netProfit>=0?'var(--green)':'var(--red)'}">€ ${fmt(c.netProfit)}</strong>`:'<span style="color:var(--muted)">—</span>'}</td>
+    </tr>`;
+  }).join('');
+}
+</script>
+</body>
+</html>

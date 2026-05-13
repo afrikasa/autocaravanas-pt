@@ -232,6 +232,7 @@ tr:hover td{background:#fafaf8}
         <div class="topbar-title" id="page-title">Dashboard</div>
         <div class="topbar-actions">
           <span id="topbar-date" style="font-size:12.5px;color:var(--muted)"></span>
+          <a href="financas.html" class="btn btn-gold btn-sm">💼 Financeiro</a>
           <a href="index.html" target="_blank" class="btn btn-ghost btn-sm">🌐 Ver site</a>
         </div>
       </div>
@@ -539,6 +540,42 @@ tr:hover td{background:#fafaf8}
   </div>
 </div>
 
+<!-- ── MODAL PREÇO DE VENDA ── -->
+<div class="modal-bg" id="sale-price-modal">
+  <div class="modal">
+    <div class="modal-header">
+      <div>
+        <div class="modal-title">💰 Registar venda no Financeiro</div>
+        <div style="font-size:12px;color:var(--muted);margin-top:2px" id="sp-car-name"></div>
+      </div>
+      <button class="modal-close" onclick="closeModal('sale-price-modal')">×</button>
+    </div>
+    <div class="modal-body">
+      <p style="font-size:13px;color:var(--muted);margin-bottom:18px">Esta viatura foi marcada como vendida. Introduza os valores reais para importar no backoffice financeiro (Marcus &amp; Daniel).</p>
+      <div class="form-row form-row-2">
+        <div class="form-group">
+          <label class="form-label">Preço de Custo Total (€)</label>
+          <input class="form-input" type="number" id="sp-purchase-price" placeholder="ex: 24000" step="0.01">
+          <div class="form-hint">O que pagaram para comprar</div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Preço de Venda Real (€)</label>
+          <input class="form-input" type="number" id="sp-sale-price" placeholder="ex: 31500" step="0.01">
+          <div class="form-hint">O que receberam na venda</div>
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Data de Venda</label>
+        <input class="form-input" type="date" id="sp-sale-date">
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('sale-price-modal')">Ignorar</button>
+      <button class="btn btn-primary" onclick="saveSalePrice()">Guardar no Financeiro</button>
+    </div>
+  </div>
+</div>
+
 <div class="toast" id="toast"></div>
 
 <script>
@@ -728,6 +765,8 @@ function editCar(i) {
 }
 
 function saveCar() {
+  const oldStatus = state.editingCarId!==null ? (state.stock[state.editingCarId]?.status||'') : '';
+  const newStatus = document.getElementById('car-status').value;
   const car = {
     title: document.getElementById('car-title').value.trim(),
     brand: document.getElementById('car-brand').value.trim(),
@@ -740,7 +779,7 @@ function saveCar() {
     desc: document.getElementById('car-desc').value.trim(),
     tipo: document.getElementById('car-tipo').value,
     neg: document.getElementById('car-neg').value,
-    status: document.getElementById('car-status').value,
+    status: newStatus,
     addedAt: new Date().toISOString()
   };
   if(!car.title){ toast('❌ Título obrigatório'); return; }
@@ -748,6 +787,31 @@ function saveCar() {
   else state.stock.unshift(car);
   save(); renderStockTable(); renderDashboard(); closeModal('car-modal');
   toast(state.editingCarId!==null?'✅ Viatura actualizada':'✅ Viatura adicionada ao stock');
+  if(newStatus==='sold' && oldStatus!=='sold') {
+    window._pendingSoldCar = car;
+    document.getElementById('sp-car-name').textContent = car.title;
+    document.getElementById('sp-purchase-price').value = '';
+    document.getElementById('sp-sale-price').value = car.price||'';
+    document.getElementById('sp-sale-date').value = new Date().toISOString().split('T')[0];
+    openModal('sale-price-modal');
+  }
+}
+
+function saveSalePrice() {
+  const car = window._pendingSoldCar;
+  if(!car) return;
+  const purchasePrice = parseFloat(document.getElementById('sp-purchase-price').value)||0;
+  const salePrice = parseFloat(document.getElementById('sp-sale-price').value);
+  const saleDate = document.getElementById('sp-sale-date').value;
+  if(!salePrice||salePrice<=0){ toast('❌ Preço de venda obrigatório'); return; }
+  try {
+    const q = JSON.parse(localStorage.getItem('bo_sold_vehicles')||'[]');
+    q.push({ id: car.addedAt||Date.now().toString(), title:car.title, brand:car.brand, year:car.year, km:car.km, purchasePrice, salePrice, saleDate, importedToFinancas:false });
+    localStorage.setItem('bo_sold_vehicles', JSON.stringify(q));
+  } catch(e){}
+  window._pendingSoldCar = null;
+  closeModal('sale-price-modal');
+  toast('✅ Venda guardada — disponível no 💼 Financeiro');
 }
 
 function deleteCar(i) {
