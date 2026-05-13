@@ -17,17 +17,22 @@ Sem build step. Sem package.json. Sem node_modules.
 
 ```
 C:\Users\marcu\Desktop\autocaravanas-pt\
-├── index.html        — site público (homepage, stock, retomas, alertas, FAQ)
-├── backoffice.html   — painel interno (stock, leads, gerador IA, Facebook, config)
-├── bg-caravan.jpg    — imagem de fundo do hero
-└── CLAUDE.md         — este ficheiro
+├── index.html          — site público (homepage, stock, retomas, alertas, FAQ)
+├── backoffice.html     — painel interno (stock, leads, gerador IA, Facebook, config)
+├── bg-caravan.jpg      — imagem de fundo do hero
+├── CLAUDE.md           — este ficheiro
+├── CHANGELOG.md        — histórico técnico de versões
+├── RELEASE_NOTES.md    — notas para utilizadores
+├── ROADMAP.md          — features planeadas
+├── FULL-RELEASE.bat    — script de deploy (git + tag + GitHub Release)
+└── .gitignore
 ```
 
 ---
 
 ## Acesso ao backoffice
 
-- URL: abrir `backoffice.html` directamente no browser
+- URL: https://autocaravanas-pt.vercel.app/backoffice.html
 - Entrada secreta: clicar duas vezes no ponto laranja no header do site público (nav-dot)
 - Password: caravan2026
 - Dados persistidos em: localStorage do browser
@@ -75,7 +80,9 @@ Fontes: Playfair Display (títulos) + DM Sans (corpo) + DM Mono (labels/mono)
 - Backoffice: login, dashboard, gestão de stock, leads, gerador IA, Facebook preview, configurações
 - Gerador IA com Anthropic API (requer API key nas Configurações do backoffice)
 - Stock manual do backoffice aparece no site público via localStorage
-- Deploy no Vercel: https://autocaravanas-pt.vercel.app
+- Botão escondido: duplo clique no nav-dot → abre backoffice
+- Deploy no Vercel: https://autocaravanas-pt.vercel.app (deploy automático a cada push)
+- GitHub: https://github.com/afrikasa/autocaravanas-pt
 
 ### Pendente
 - Conectar formulários do site ao backoffice (leads reais, não só demo data)
@@ -89,10 +96,20 @@ Fontes: Playfair Display (títulos) + DM Sans (corpo) + DM Mono (labels/mono)
 
 - Sem frameworks — HTML/CSS/JS puro
 - Sem build step — editar os ficheiros directamente
-- Não usar git add -A — este projecto ainda não tem git init
-- Para versionar: fazer git init primeiro, depois seguir TOOLS/GIT-FIRST-PUSH.bat
+- Não usar git add -A — adicionar ficheiros específicos
 - Não criar ficheiros .md extra sem o Marcus pedir
 - Não alterar a password do backoffice sem confirmar
+- Não substituir imagens sem confirmar
+
+---
+
+## Git e Deploy
+
+- Repositório: https://github.com/afrikasa/autocaravanas-pt
+- Branch principal: main
+- Vercel: https://autocaravanas-pt.vercel.app — deploy automático a cada push para main
+- Para releases: correr FULL-RELEASE.bat na pasta do projecto
+- Quando Marcus disser "FULL PACKAGE RELEASE": commit + push + tag + GitHub Release + actualizar CHANGELOG/RELEASE_NOTES
 
 ---
 
@@ -101,6 +118,5 @@ Fontes: Playfair Display (títulos) + DM Sans (corpo) + DM Mono (labels/mono)
 1. Ler este CLAUDE.md
 2. Ler TOOLS/CLAUDE_DESKTOP_DIRECTIVES.md e TOOLS/VERSIONING-AND-WORKFLOW.md
 3. Implementar o que o Marcus pede
-4. Entregar só os ficheiros alterados
-5. Não versionar sem aprovação explícita
-6. Quando Marcus disser "FULL PACKAGE RELEASE": fazer git init (se ainda não feito) + GIT-FIRST-PUSH.bat
+4. Commitar e fazer push (deploy automático no Vercel)
+5. Só criar tag/release com aprovação explícita
