@@ -1,0 +1,5 @@
+{
+  "rewrites": [
+    { "source": "/sb/:path*", "destination": "http://178.104.200.214:8000/:path*" }
+  ]
+}

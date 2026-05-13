@@ -505,7 +505,55 @@ tr:hover td{background:#fafaf8}
 
 <div class="toast" id="toast"></div>
 
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
+const SUPABASE_URL = '/sb';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiAiSFMyNTYiLCAidHlwIjogIkpXVCJ9.eyJyb2xlIjogImFub24iLCAiaXNzIjogInN1cGFiYXNlIiwgImlhdCI6IDE3MDAwMDAwMDAsICJleHAiOiAyMDAwMDAwMDAwfQ.KLmNqezhqGyqjzNTT-nzAI30q-tuWtIDQkmVm2tp6Us';
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+// ── DB MAPPERS ──
+function dbCarToState(r) {
+  return {
+    id: r.id, name: r.name, brand: r.brand||'', year: r.year||null, km: r.km||null,
+    tipo: r.tipo||'', image: r.image||'', desc: r.notes||'',
+    purchasePrice: parseFloat(r.purchase_price)||0,
+    purchaseDate: r.purchase_date||'',
+    salePrice: r.sale_price!=null ? parseFloat(r.sale_price) : null,
+    saleDate: r.sale_date||null,
+    expenses: r.expenses||[],
+    createdBy: r.created_by||'',
+    importedFromBackoffice: !!r.imported_from_backoffice
+  };
+}
+function stateCarToDb(c) {
+  return {
+    id: c.id, name: c.name, brand: c.brand||null, year: c.year||null, km: c.km||null,
+    tipo: c.tipo||null, image: c.image||null, notes: c.desc||null,
+    purchase_price: c.purchasePrice, purchase_date: c.purchaseDate||null,
+    sale_price: c.salePrice||null, sale_date: c.saleDate||null,
+    expenses: c.expenses||[],
+    created_by: c.createdBy||null, imported_from_backoffice: !!c.importedFromBackoffice
+  };
+}
+function dbInvToState(r) {
+  return { id: r.id, person: r.person, amount: parseFloat(r.amount)||0, date: r.date||'', description: r.description||'', createdBy: r.created_by||'' };
+}
+function stateInvToDb(i) {
+  return { id: i.id, person: i.person, amount: i.amount, date: i.date||null, description: i.description||null, created_by: i.createdBy||null };
+}
+
+// ── SUPABASE HELPERS (fire-and-forget) ──
+function sbSaveCar(car) { sb.from('cf_caravans').upsert(stateCarToDb(car)).then().catch(console.error); }
+function sbDeleteCar(id) { sb.from('cf_caravans').delete().eq('id', id).then().catch(console.error); }
+function sbSaveInv(inv) { sb.from('cf_investments').upsert(stateInvToDb(inv)).then().catch(console.error); }
+function sbDeleteInv(id) { sb.from('cf_investments').delete().eq('id', id).then().catch(console.error); }
+async function sbImportAll() {
+  await sb.from('cf_caravans').delete().not('id', 'is', null);
+  await sb.from('cf_investments').delete().not('id', 'is', null);
+  if (state.caravans.length) await sb.from('cf_caravans').insert(state.caravans.map(stateCarToDb));
+  if (state.investments.length) await sb.from('cf_investments').insert(state.investments.map(stateInvToDb));
+}
+
 const USERS = { marcus: 'marcus123', daniel: 'daniel123' };
 const CATEGORIES = [
   {key:'reparacoes',label:'Reparações',icon:'🔧'},
@@ -532,7 +580,18 @@ function save() {
   localStorage.setItem('cf_caravans', JSON.stringify(state.caravans));
   localStorage.setItem('cf_investments', JSON.stringify(state.investments));
 }
-function load() {
+async function load() {
+  try {
+    const [{ data: cars, error: e1 }, { data: invs, error: e2 }] = await Promise.all([
+      sb.from('cf_caravans').select('*').order('created_at'),
+      sb.from('cf_investments').select('*').order('created_at')
+    ]);
+    if (e1 || e2) throw new Error(e1?.message || e2?.message);
+    state.caravans = (cars||[]).map(dbCarToState);
+    state.investments = (invs||[]).map(dbInvToState);
+    save(); // cache local
+    return;
+  } catch(e) { console.warn('Supabase offline, a usar cache local:', e.message); }
   try {
     const c = localStorage.getItem('cf_caravans');
     const i = localStorage.getItem('cf_investments');
@@ -563,8 +622,8 @@ function logout() {
 }
 
 // ── INIT ──
-function init() {
-  load();
+async function init() {
+  await load();
   document.getElementById('user-name').textContent = currentUser;
   // populate category select
   document.getElementById('exp-category').innerHTML = CATEGORIES.map(c => `<option value="${c.key}">${c.icon} ${c.label}</option>`).join('');
@@ -639,7 +698,7 @@ function importFromBackoffice() {
     q.forEach(v => {
       if (v.importedToFinancas) return;
       if (state.caravans.find(c=>c.backofficeId===v.id)) { v.importedToFinancas=true; return; }
-      state.caravans.push({
+      const car = {
         id: uid(), backofficeId: v.id,
         name: v.title||'Viatura sem nome',
         purchasePrice: parseFloat(v.purchasePrice)||0,
@@ -647,7 +706,9 @@ function importFromBackoffice() {
         salePrice: parseFloat(v.salePrice)||null,
         saleDate: v.saleDate||null,
         expenses: [], createdBy: currentUser, importedFromBackoffice: true
-      });
+      };
+      state.caravans.push(car);
+      sbSaveCar(car);
       v.importedToFinancas = true;
       imported++;
     });
@@ -717,13 +778,16 @@ function saveInvestment() {
   const date = document.getElementById('inv-date').value;
   const desc = document.getElementById('inv-desc').value.trim();
   if (!amount || amount <= 0) { toast('❌ Valor inválido'); return; }
-  state.investments.push({ id:uid(), person, amount, date, description:desc, createdBy:currentUser, createdAt:new Date().toISOString() });
+  const inv = { id:uid(), person, amount, date, description:desc, createdBy:currentUser, createdAt:new Date().toISOString() };
+  state.investments.push(inv);
+  sbSaveInv(inv);
   save(); renderInvestimentos(); renderDashboard(); renderRelatorio();
   closeModal('inv-modal'); toast('✅ Investimento registado');
 }
 function deleteInvestment(id) {
   if (!confirm('Remover este investimento?')) return;
   state.investments = state.investments.filter(i=>i.id!==id);
+  sbDeleteInv(id);
   save(); renderInvestimentos(); renderDashboard(); renderRelatorio(); toast('🗑️ Removido');
 }
 
@@ -789,9 +853,11 @@ function saveCaravan() {
   };
   if (editingCaravanId) {
     const car = state.caravans.find(c=>c.id===editingCaravanId);
-    if (car) Object.assign(car, fields);
+    if (car) { Object.assign(car, fields); sbSaveCar(car); }
   } else {
-    state.caravans.push({ id:uid(), ...fields, expenses:[], createdBy:currentUser, importedFromBackoffice:false });
+    const car = { id:uid(), ...fields, expenses:[], createdBy:currentUser, importedFromBackoffice:false };
+    state.caravans.push(car);
+    sbSaveCar(car);
   }
   save(); renderAll(); closeModal('car-modal'); toast('✅ Viatura guardada');
 }
@@ -882,6 +948,7 @@ function renderDetailExpenses(car) {
 function deleteCaravan(id) {
   if (!confirm('Eliminar esta viatura e todas as despesas?')) return;
   state.caravans = state.caravans.filter(c=>c.id!==id);
+  sbDeleteCar(id);
   save(); renderAll(); closeModal('det-modal'); toast('🗑️ Viatura eliminada');
 }
 function openSellCaravan(id) {
@@ -897,6 +964,7 @@ function saveSale() {
   const saleDate = document.getElementById('sell-date').value;
   if (!salePrice||salePrice<=0) { toast('❌ Preço de venda inválido'); return; }
   car.salePrice=salePrice; car.saleDate=saleDate;
+  sbSaveCar(car);
   save(); renderAll(); closeModal('sell-modal');
   openCaravanDetail(activeCaravanId); toast('✅ Venda registada');
 }
@@ -920,6 +988,7 @@ function saveExpense() {
   if (!totalAmount||totalAmount<=0) { toast('❌ Valor inválido'); return; }
   if (!car.expenses) car.expenses=[];
   car.expenses.push({ id:uid(), category, description, totalAmount, date, paid:false, createdBy:currentUser, createdAt:new Date().toISOString() });
+  sbSaveCar(car);
   save(); renderAll(); renderDetailExpenses(car);
   closeModal('exp-modal'); toast('✅ Despesa adicionada');
 }
@@ -928,12 +997,13 @@ function toggleExpensePaid(caravanId, expenseId, paid) {
   if (!car) return;
   const exp = (car.expenses||[]).find(e=>e.id===expenseId);
   if (!exp) return;
-  exp.paid=paid; save(); renderAll(); renderDetailExpenses(car);
+  exp.paid=paid; sbSaveCar(car); save(); renderAll(); renderDetailExpenses(car);
 }
 function deleteExpense(caravanId, expenseId) {
   const car = state.caravans.find(c=>c.id===caravanId);
   if (!car||!confirm('Remover esta despesa?')) return;
   car.expenses=(car.expenses||[]).filter(e=>e.id!==expenseId);
+  sbSaveCar(car);
   save(); renderAll(); renderDetailExpenses(car); toast('🗑️ Despesa removida');
 }
 
@@ -988,8 +1058,10 @@ function processImport(event) {
         createdBy: i.by||i.createdBy||currentUser,
         createdAt: new Date().toISOString()
       }));
-      save(); renderAll();
-      toast(`✅ Importado: ${totalC} viatura(s), ${totalI} investimento(s)`);
+      save();
+      sbImportAll().then(() => toast(`✅ Importado: ${totalC} viatura(s), ${totalI} investimento(s)`))
+                   .catch(e => { toast(`✅ Guardado local (Supabase: ${e.message})`); });
+      renderAll();
     } catch(err) { toast('❌ Erro ao ler ficheiro: '+err.message); }
   };
   reader.readAsText(file);
