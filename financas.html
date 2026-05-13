@@ -356,7 +356,7 @@ tr:hover td{background:#fafaf8}
           <input class="form-input" type="number" id="car-km" placeholder="45000">
         </div>
       </div>
-      <div class="form-row form-row-3">
+      <div class="form-row form-row-2">
         <div class="form-group">
           <label class="form-label">Tipologia</label>
           <select class="form-select" id="car-tipo">
@@ -366,15 +366,8 @@ tr:hover td{background:#fafaf8}
           </select>
         </div>
         <div class="form-group">
-          <label class="form-label">Localização</label>
-          <input class="form-input" id="car-location" placeholder="Braga">
-        </div>
-        <div class="form-group">
-          <label class="form-label">Negociável?</label>
-          <select class="form-select" id="car-neg">
-            <option value="false">Não</option>
-            <option value="true">Sim</option>
-          </select>
+          <label class="form-label">URL da imagem</label>
+          <input class="form-input" id="car-image" placeholder="https://...">
         </div>
       </div>
       <div class="form-row form-row-2">
@@ -390,12 +383,13 @@ tr:hover td{background:#fafaf8}
       </div>
       <div class="form-row form-row-2">
         <div class="form-group">
-          <label class="form-label">URL da imagem</label>
-          <input class="form-input" id="car-image" placeholder="https://...">
+          <label class="form-label">Preço de Venda Total (€)</label>
+          <input class="form-input" type="number" id="car-sale-price" placeholder="32000" step="0.01">
+          <div class="form-hint">Deixar vazio se ainda não vendida</div>
         </div>
         <div class="form-group">
-          <label class="form-label">Link do anúncio (OLX, CJ...)</label>
-          <input class="form-input" id="car-url" placeholder="https://www.olx.pt/...">
+          <label class="form-label">Data de Venda</label>
+          <input class="form-input" type="date" id="car-sale-date">
         </div>
       </div>
       <div class="form-group">
@@ -747,7 +741,7 @@ function renderCaravanas() {
             ${car.name}
             ${car.importedFromBackoffice?'<span class="badge badge-blue" style="margin-left:6px;font-size:10px">importado</span>':''}
           </div>
-          ${[car.brand,car.year,car.km?Number(car.km).toLocaleString('pt-PT')+' km':null,car.tipo,car.location].filter(Boolean).length?`<div style="font-size:12px;color:var(--forest);font-weight:500;margin-bottom:3px">${[car.brand,car.year,car.km?Number(car.km).toLocaleString('pt-PT')+' km':null,car.tipo,car.location].filter(Boolean).join(' · ')}</div>`:''}
+          ${[car.brand,car.year,car.km?Number(car.km).toLocaleString('pt-PT')+' km':null,car.tipo].filter(Boolean).length?`<div style="font-size:12px;color:var(--forest);font-weight:500;margin-bottom:3px">${[car.brand,car.year,car.km?Number(car.km).toLocaleString('pt-PT')+' km':null,car.tipo].filter(Boolean).join(' · ')}</div>`:''}
           <div style="font-size:12.5px;color:var(--muted)">Compra total: € ${fmt(car.purchasePrice)} · ${fmtDate(car.purchaseDate)}</div>
           ${sold?`<div style="font-size:12.5px;color:var(--muted)">Venda total: € ${fmt(car.salePrice)} · ${fmtDate(car.saleDate)}</div>`:''}
         </div>
@@ -767,9 +761,8 @@ function renderCaravanas() {
 }
 function openAddCaravan() {
   editingCaravanId = null;
-  ['car-name','car-brand','car-year','car-km','car-location','car-image','car-url','car-desc'].forEach(id=>{ const el=document.getElementById(id); if(el) el.value=''; });
+  ['car-name','car-brand','car-year','car-km','car-image','car-desc','car-sale-price','car-sale-date'].forEach(id=>{ const el=document.getElementById(id); if(el) el.value=''; });
   document.getElementById('car-tipo').value='';
-  document.getElementById('car-neg').value='false';
   document.getElementById('car-purchase-price').value='';
   document.getElementById('car-purchase-date').value=todayStr();
   document.getElementById('car-modal-title').textContent='Adicionar Viatura';
@@ -781,23 +774,24 @@ function saveCaravan() {
   const purchaseDate = document.getElementById('car-purchase-date').value;
   if (!name) { toast('❌ Nome obrigatório'); return; }
   if (!purchasePrice || purchasePrice <= 0) { toast('❌ Preço inválido'); return; }
+  const salePriceRaw = parseFloat(document.getElementById('car-sale-price').value)||null;
+  const saleDateRaw = document.getElementById('car-sale-date').value||null;
   const fields = {
     name, purchasePrice, purchaseDate,
     brand: document.getElementById('car-brand').value.trim(),
     year: parseInt(document.getElementById('car-year').value)||null,
     km: parseInt(document.getElementById('car-km').value)||null,
     tipo: document.getElementById('car-tipo').value,
-    location: document.getElementById('car-location').value.trim(),
-    neg: document.getElementById('car-neg').value==='true',
     image: document.getElementById('car-image').value.trim(),
-    url: document.getElementById('car-url').value.trim(),
-    desc: document.getElementById('car-desc').value.trim()
+    desc: document.getElementById('car-desc').value.trim(),
+    salePrice: salePriceRaw,
+    saleDate: salePriceRaw ? saleDateRaw : null
   };
   if (editingCaravanId) {
     const car = state.caravans.find(c=>c.id===editingCaravanId);
     if (car) Object.assign(car, fields);
   } else {
-    state.caravans.push({ id:uid(), ...fields, salePrice:null, saleDate:null, expenses:[], createdBy:currentUser, importedFromBackoffice:false });
+    state.caravans.push({ id:uid(), ...fields, expenses:[], createdBy:currentUser, importedFromBackoffice:false });
   }
   save(); renderAll(); closeModal('car-modal'); toast('✅ Viatura guardada');
 }
@@ -811,12 +805,11 @@ function openCaravanDetail(id) {
   document.getElementById('det-car-purchase').textContent = `€ ${fmt(car.purchasePrice)} total · ${fmtDate(car.purchaseDate)}`;
   // info section: meta fields + image + link
   const infoSection = document.getElementById('det-info-section');
-  const metaItems = [car.brand,car.year,car.km?Number(car.km).toLocaleString('pt-PT')+' km':null,car.tipo,car.location].filter(Boolean);
   let infoHtml = '';
   if (car.image) infoHtml += `<div style="margin-bottom:10px"><img src="${car.image}" style="max-width:100%;max-height:160px;border-radius:8px;object-fit:cover" onerror="this.style.display='none'"></div>`;
-  if (metaItems.length) infoHtml += `<div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:10px">${metaItems.map(m=>`<span class="badge badge-muted">${m}</span>`).join('')}${car.neg?'<span class="badge badge-gold">Negociável</span>':''}</div>`;
+  const metaItems = [car.brand,car.year,car.km?Number(car.km).toLocaleString('pt-PT')+' km':null,car.tipo].filter(Boolean);
+  if (metaItems.length) infoHtml += `<div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:10px">${metaItems.map(m=>`<span class="badge badge-muted">${m}</span>`).join('')}</div>`;
   if (car.desc) infoHtml += `<div style="font-size:13px;color:var(--muted);padding:10px 12px;background:var(--cream);border-radius:6px;margin-bottom:4px">${car.desc}</div>`;
-  if (car.url) infoHtml += `<div style="margin-top:6px"><a href="${car.url}" target="_blank" class="btn btn-ghost btn-sm" style="font-size:12px">🔗 Ver anúncio</a></div>`;
   infoSection.innerHTML = infoHtml;
   const saleSection = document.getElementById('det-sale-section');
   if (sold) {
@@ -835,12 +828,11 @@ function openCaravanDetail(id) {
     document.getElementById('car-year').value=car.year||'';
     document.getElementById('car-km').value=car.km||'';
     document.getElementById('car-tipo').value=car.tipo||'';
-    document.getElementById('car-location').value=car.location||'';
-    document.getElementById('car-neg').value=car.neg?'true':'false';
     document.getElementById('car-purchase-price').value=car.purchasePrice||'';
     document.getElementById('car-purchase-date').value=car.purchaseDate||todayStr();
+    document.getElementById('car-sale-price').value=car.salePrice||'';
+    document.getElementById('car-sale-date').value=car.saleDate||'';
     document.getElementById('car-image').value=car.image||'';
-    document.getElementById('car-url').value=car.url||'';
     document.getElementById('car-desc').value=car.desc||'';
     document.getElementById('car-modal-title').textContent='Editar Viatura';
     openModal('car-modal');
