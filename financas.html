@@ -179,6 +179,8 @@ tr:hover td{background:#fafaf8}
       <div class="topbar">
         <div class="topbar-title" id="page-title">Dashboard</div>
         <div class="topbar-actions">
+          <input type="file" id="import-file" accept=".json" style="display:none" onchange="processImport(event)">
+          <button class="btn btn-ghost btn-sm" onclick="document.getElementById('import-file').click()">📂 Importar JSON</button>
           <a href="backoffice.html" class="btn btn-ghost btn-sm">← Backoffice</a>
         </div>
       </div>
@@ -851,6 +853,73 @@ function deleteExpense(caravanId, expenseId) {
   if (!car||!confirm('Remover esta despesa?')) return;
   car.expenses=(car.expenses||[]).filter(e=>e.id!==expenseId);
   save(); renderAll(); renderDetailExpenses(car); toast('🗑️ Despesa removida');
+}
+
+// ── IMPORTAR JSON ──
+function processImport(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  event.target.value = '';
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    try {
+      const data = JSON.parse(e.target.result);
+      if (!data.caravans && !data.investments) { toast('❌ Formato de ficheiro inválido'); return; }
+      const totalC = (data.caravans||[]).length;
+      const totalI = (data.investments||[]).length;
+      if (!confirm(`Importar ${totalC} viatura(s) e ${totalI} investimento(s)?\n\nAtenção: os dados actuais serão substituídos.`)) return;
+      state.caravans = (data.caravans||[]).map(c => ({
+        id: uid(),
+        name: c.name||'Sem nome',
+        purchasePrice: parseFloat(c.purchasePrice)||0,
+        purchaseDate: c.purchaseDate||todayStr(),
+        salePrice: c.salePrice!=null ? parseFloat(c.salePrice) : null,
+        saleDate: c.saleDate||null,
+        expenses: (c.expenses||[]).map(ex => ({
+          id: uid(),
+          category: mapCategory(ex.category),
+          description: ex.description||'',
+          totalAmount: parseFloat(ex.totalAmount)||parseFloat(ex.amount)*2||0,
+          date: ex.date||todayStr(),
+          paid: !!ex.paid,
+          createdBy: ex.by||ex.createdBy||currentUser,
+          createdAt: new Date().toISOString()
+        })),
+        createdBy: c.by||c.createdBy||currentUser,
+        importedFromBackoffice: false
+      }));
+      state.investments = (data.investments||[]).map(i => ({
+        id: uid(),
+        person: i.person||currentUser,
+        amount: parseFloat(i.amount)||0,
+        date: i.date||todayStr(),
+        description: i.description||'',
+        createdBy: i.by||i.createdBy||currentUser,
+        createdAt: new Date().toISOString()
+      }));
+      save(); renderAll();
+      toast(`✅ Importado: ${totalC} viatura(s), ${totalI} investimento(s)`);
+    } catch(err) { toast('❌ Erro ao ler ficheiro: '+err.message); }
+  };
+  reader.readAsText(file);
+}
+
+function mapCategory(cat) {
+  const m = {
+    'Reparações':'reparacoes','Reparacoes':'reparacoes','reparacoes':'reparacoes',
+    'Pintura':'pintura','pintura':'pintura',
+    'Mecânica':'mecanica','Mecanica':'mecanica','mecanica':'mecanica',
+    'Elétrica':'eletrica','Eletrica':'eletrica','eletrica':'eletrica',
+    'Baterias':'baterias','baterias':'baterias',
+    'Pneus':'pneus','pneus':'pneus',
+    'Produtos Limpeza':'limpeza','Limpeza':'limpeza','limpeza':'limpeza',
+    'Estofos/Interior':'estofos','Estofos':'estofos','estofos':'estofos',
+    'Documentação':'documentacao','Documentacao':'documentacao','documentacao':'documentacao',
+    'Transporte':'transporte','transporte':'transporte',
+    'Inspeção':'inspecao','Inspecao':'inspecao','inspecao':'inspecao',
+    'Outros':'outros','outros':'outros'
+  };
+  return m[cat]||'outros';
 }
 
 // ── RELATÓRIO ──
