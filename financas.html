@@ -505,11 +505,16 @@ tr:hover td{background:#fafaf8}
 
 <div class="toast" id="toast"></div>
 
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 <script>
 const SUPABASE_URL = '/sb';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiAiSFMyNTYiLCAidHlwIjogIkpXVCJ9.eyJyb2xlIjogImFub24iLCAiaXNzIjogInN1cGFiYXNlIiwgImlhdCI6IDE3MDAwMDAwMDAsICJleHAiOiAyMDAwMDAwMDAwfQ.KLmNqezhqGyqjzNTT-nzAI30q-tuWtIDQkmVm2tp6Us';
-const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+let sb = null;
+try {
+  if (typeof supabase !== 'undefined' && supabase.createClient) {
+    sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  }
+} catch(e) { console.warn('Supabase indisponível:', e); }
 
 // ── DB MAPPERS ──
 function dbCarToState(r) {
@@ -543,11 +548,12 @@ function stateInvToDb(i) {
 }
 
 // ── SUPABASE HELPERS (fire-and-forget) ──
-function sbSaveCar(car) { sb.from('cf_caravans').upsert(stateCarToDb(car)).then().catch(console.error); }
-function sbDeleteCar(id) { sb.from('cf_caravans').delete().eq('id', id).then().catch(console.error); }
-function sbSaveInv(inv) { sb.from('cf_investments').upsert(stateInvToDb(inv)).then().catch(console.error); }
-function sbDeleteInv(id) { sb.from('cf_investments').delete().eq('id', id).then().catch(console.error); }
+function sbSaveCar(car) { if (!sb) return; sb.from('cf_caravans').upsert(stateCarToDb(car)).then().catch(console.error); }
+function sbDeleteCar(id) { if (!sb) return; sb.from('cf_caravans').delete().eq('id', id).then().catch(console.error); }
+function sbSaveInv(inv) { if (!sb) return; sb.from('cf_investments').upsert(stateInvToDb(inv)).then().catch(console.error); }
+function sbDeleteInv(id) { if (!sb) return; sb.from('cf_investments').delete().eq('id', id).then().catch(console.error); }
 async function sbImportAll() {
+  if (!sb) return;
   await sb.from('cf_caravans').delete().not('id', 'is', null);
   await sb.from('cf_investments').delete().not('id', 'is', null);
   if (state.caravans.length) await sb.from('cf_caravans').insert(state.caravans.map(stateCarToDb));
@@ -581,17 +587,19 @@ function save() {
   localStorage.setItem('cf_investments', JSON.stringify(state.investments));
 }
 async function load() {
-  try {
-    const [{ data: cars, error: e1 }, { data: invs, error: e2 }] = await Promise.all([
-      sb.from('cf_caravans').select('*').order('created_at'),
-      sb.from('cf_investments').select('*').order('created_at')
-    ]);
-    if (e1 || e2) throw new Error(e1?.message || e2?.message);
-    state.caravans = (cars||[]).map(dbCarToState);
-    state.investments = (invs||[]).map(dbInvToState);
-    save(); // cache local
-    return;
-  } catch(e) { console.warn('Supabase offline, a usar cache local:', e.message); }
+  if (sb) {
+    try {
+      const [{ data: cars, error: e1 }, { data: invs, error: e2 }] = await Promise.all([
+        sb.from('cf_caravans').select('*').order('created_at'),
+        sb.from('cf_investments').select('*').order('created_at')
+      ]);
+      if (e1 || e2) throw new Error(e1?.message || e2?.message);
+      state.caravans = (cars||[]).map(dbCarToState);
+      state.investments = (invs||[]).map(dbInvToState);
+      save();
+      return;
+    } catch(e) { console.warn('Supabase offline, a usar cache local:', e.message); }
+  }
   try {
     const c = localStorage.getItem('cf_caravans');
     const i = localStorage.getItem('cf_investments');
