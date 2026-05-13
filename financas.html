@@ -181,6 +181,7 @@ tr:hover td{background:#fafaf8}
         <div class="topbar-actions">
           <input type="file" id="import-file" accept=".json" style="display:none" onchange="processImport(event)">
           <button class="btn btn-ghost btn-sm" onclick="document.getElementById('import-file').click()">📂 Importar JSON</button>
+          <button class="btn btn-ghost btn-sm" id="sync-btn" onclick="syncToSupabase()">☁️ Sincronizar</button>
           <a href="backoffice.html" class="btn btn-ghost btn-sm">← Backoffice</a>
         </div>
       </div>
@@ -1013,6 +1014,21 @@ function deleteExpense(caravanId, expenseId) {
   car.expenses=(car.expenses||[]).filter(e=>e.id!==expenseId);
   sbSaveCar(car);
   save(); renderAll(); renderDetailExpenses(car); toast('🗑️ Despesa removida');
+}
+
+// ── SINCRONIZAR PARA SUPABASE ──
+async function syncToSupabase() {
+  if (!sb) { toast('❌ Supabase não disponível'); return; }
+  const btn = document.getElementById('sync-btn');
+  btn.textContent = '⏳ A sincronizar...'; btn.disabled = true;
+  try {
+    await sbImportAll();
+    toast(`✅ ${state.caravans.length} viatura(s) e ${state.investments.length} investimento(s) enviados para Supabase`);
+  } catch(e) {
+    toast('❌ Erro: ' + e.message);
+  } finally {
+    btn.textContent = '☁️ Sincronizar'; btn.disabled = false;
+  }
 }
 
 // ── IMPORTAR JSON ──
