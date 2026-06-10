@@ -394,6 +394,13 @@ tr:hover td{background:#fafaf8}
         </div>
       </div>
       <div class="form-group">
+        <label class="form-label">Retoma incluída?</label>
+        <select class="form-select" id="car-retoma-included">
+          <option value="no">Não</option>
+          <option value="yes">Sim</option>
+        </select>
+      </div>
+      <div class="form-group">
         <label class="form-label">Descrição / Notas internas</label>
         <textarea class="form-input" id="car-desc" rows="3" placeholder="Estado, equipamento, origem, observações..." style="resize:vertical;min-height:70px"></textarea>
       </div>
@@ -449,14 +456,38 @@ tr:hover td{background:#fafaf8}
       <div class="form-row form-row-2">
         <div class="form-group">
           <label class="form-label">Preço de Venda Total (€) *</label>
-          <input class="form-input" type="number" id="sell-price" placeholder="32000" step="0.01">
+          <input class="form-input" type="number" id="sell-price" placeholder="32000" step="0.01" oninput="calcCashReceived()">
         </div>
         <div class="form-group">
           <label class="form-label">Data de Venda</label>
           <input class="form-input" type="date" id="sell-date">
         </div>
       </div>
-      <div style="padding:12px;background:var(--gold-l);border-radius:8px;font-size:13px">
+      <div style="padding:12px;background:var(--cream);border-radius:8px;margin-bottom:14px">
+        <label style="display:flex;align-items:center;gap:10px;cursor:pointer;font-size:13.5px;font-weight:600">
+          <input type="checkbox" id="sell-retoma-toggle" onchange="toggleRetomaFields()" style="cursor:pointer;accent-color:var(--rust);width:15px;height:15px">
+          Incluiu retoma (trade-in)?
+        </label>
+      </div>
+      <div id="sell-retoma-fields" style="display:none;background:#fdf3ee;padding:14px;border-radius:8px;margin-bottom:14px;border:1px solid rgba(196,82,26,.2)">
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Descrição da Retoma</label>
+            <input class="form-input" id="sell-retoma-desc" placeholder="Ex: Fiat Ducato 2015 140cv">
+          </div>
+        </div>
+        <div class="form-row form-row-2">
+          <div class="form-group">
+            <label class="form-label">Valor da Retoma (€) *</label>
+            <input class="form-input" type="number" id="sell-retoma-value" placeholder="5000" step="0.01" oninput="calcCashReceived()">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Cash Recebido (calculado)</label>
+            <input class="form-input" type="text" id="sell-cash-received" readonly style="background:#f0f0f0;color:var(--muted)">
+          </div>
+        </div>
+      </div>
+      <div style="padding:12px;background:#fdfbf3;border-radius:8px;font-size:13px;border:1px solid rgba(184,149,42,.2)">
         <strong>Nota:</strong> O sistema calcula automaticamente 50% do lucro para cada sócio.
       </div>
     </div>
@@ -526,6 +557,9 @@ function dbCarToState(r) {
     purchaseDate: r.purchase_date||'',
     salePrice: r.sale_price!=null ? parseFloat(r.sale_price) : null,
     saleDate: r.sale_date||null,
+    retomaIncluded: !!r.retoma_included,
+    retomaDescription: r.retoma_description||'',
+    retomaValue: parseFloat(r.retoma_value)||0,
     expenses: r.expenses||[],
     createdBy: r.created_by||'',
     importedFromBackoffice: !!r.imported_from_backoffice
@@ -537,6 +571,9 @@ function stateCarToDb(c) {
     tipo: c.tipo||null, image: c.image||null, notes: c.desc||null,
     purchase_price: c.purchasePrice, purchase_date: c.purchaseDate||null,
     sale_price: c.salePrice||null, sale_date: c.saleDate||null,
+    retoma_included: !!c.retomaIncluded,
+    retoma_description: c.retomaDescription||null,
+    retoma_value: c.retomaValue||0,
     expenses: c.expenses||[],
     created_by: c.createdBy||null, imported_from_backoffice: !!c.importedFromBackoffice
   };
@@ -838,6 +875,7 @@ function openAddCaravan() {
   document.getElementById('car-tipo').value='';
   document.getElementById('car-purchase-price').value='';
   document.getElementById('car-purchase-date').value=todayStr();
+  document.getElementById('car-retoma-included').value='no';
   document.getElementById('car-modal-title').textContent='Adicionar Viatura';
   openModal('car-modal');
 }
@@ -849,6 +887,7 @@ function saveCaravan() {
   if (!purchasePrice || purchasePrice <= 0) { toast('❌ Preço inválido'); return; }
   const salePriceRaw = parseFloat(document.getElementById('car-sale-price').value)||null;
   const saleDateRaw = document.getElementById('car-sale-date').value||null;
+  const retomaIncludedSelect = document.getElementById('car-retoma-included');
   const fields = {
     name, purchasePrice, purchaseDate,
     brand: document.getElementById('car-brand').value.trim(),
@@ -858,7 +897,10 @@ function saveCaravan() {
     image: document.getElementById('car-image').value.trim(),
     desc: document.getElementById('car-desc').value.trim(),
     salePrice: salePriceRaw,
-    saleDate: salePriceRaw ? saleDateRaw : null
+    saleDate: salePriceRaw ? saleDateRaw : null,
+    retomaIncluded: retomaIncludedSelect && retomaIncludedSelect.value === 'yes' ? true : false,
+    retomaDescription: '',
+    retomaValue: 0
   };
   if (editingCaravanId) {
     const car = state.caravans.find(c=>c.id===editingCaravanId);
@@ -888,11 +930,24 @@ function openCaravanDetail(id) {
   infoSection.innerHTML = infoHtml;
   const saleSection = document.getElementById('det-sale-section');
   if (sold) {
-    saleSection.innerHTML=`<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;padding:16px;background:var(--green-l);border-radius:8px;margin-bottom:18px;border:1px solid rgba(22,163,74,.2)">
+    let saleHtml = `<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;padding:16px;background:var(--green-l);border-radius:8px;margin-bottom:18px;border:1px solid rgba(22,163,74,.2)">
       <div><div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px">Venda (total)</div><div style="font-size:18px;font-weight:700">€ ${fmt(car.salePrice)}</div><div style="font-size:11.5px;color:var(--muted)">${fmtDate(car.saleDate)}</div></div>
       <div><div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px">Lucro Bruto (50%)</div><div style="font-size:18px;font-weight:700;color:var(--green)">€ ${fmt(c.grossProfit)}</div></div>
       <div><div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px">Lucro Líquido (50%)</div><div style="font-size:20px;font-weight:800;color:${c.netProfit>=0?'var(--green)':'var(--red)'}">€ ${fmt(c.netProfit)}</div></div>
     </div>`;
+    if (car.retomaIncluded) {
+      saleHtml += `<div style="padding:12px;background:#fdf3ee;border-radius:8px;margin-bottom:18px;border:1px solid rgba(196,82,26,.2)">
+        <div style="font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px">Retoma (Trade-in)</div>
+        <div style="display:grid;grid-template-columns:1fr auto;gap:12px;align-items:center">
+          <div style="font-size:13px;font-weight:600">${car.retomaDescription||'—'}</div>
+          <div style="font-size:18px;font-weight:700">€ ${fmt(car.retomaValue)}</div>
+        </div>
+        <div style="margin-top:8px;padding-top:8px;border-top:1px solid rgba(196,82,26,.15);font-size:12px;color:var(--muted)">
+          💰 Cash recebido: <strong style="color:var(--ink)">€ ${fmt(car.salePrice - car.retomaValue)}</strong>
+        </div>
+      </div>`;
+    }
+    saleSection.innerHTML = saleHtml;
   } else {
     saleSection.innerHTML=`<button class="btn btn-rust" onclick="openSellCaravan('${id}')" style="margin-bottom:18px">💰 Marcar como vendida</button>`;
   }
@@ -909,6 +964,7 @@ function openCaravanDetail(id) {
     document.getElementById('car-sale-date').value=car.saleDate||'';
     document.getElementById('car-image').value=car.image||'';
     document.getElementById('car-desc').value=car.desc||'';
+    document.getElementById('car-retoma-included').value=car.retomaIncluded?'yes':'no';
     document.getElementById('car-modal-title').textContent='Editar Viatura';
     openModal('car-modal');
   };
@@ -964,6 +1020,11 @@ function openSellCaravan(id) {
   activeCaravanId = id;
   document.getElementById('sell-price').value='';
   document.getElementById('sell-date').value=todayStr();
+  document.getElementById('sell-retoma-toggle').checked = false;
+  document.getElementById('sell-retoma-fields').style.display = 'none';
+  document.getElementById('sell-retoma-desc').value = '';
+  document.getElementById('sell-retoma-value').value = '';
+  document.getElementById('sell-cash-received').value = '';
   openModal('sell-modal');
 }
 function saveSale() {
@@ -972,10 +1033,42 @@ function saveSale() {
   const salePrice = parseFloat(document.getElementById('sell-price').value);
   const saleDate = document.getElementById('sell-date').value;
   if (!salePrice||salePrice<=0) { toast('❌ Preço de venda inválido'); return; }
-  car.salePrice=salePrice; car.saleDate=saleDate;
+  const retomaIncluded = document.getElementById('sell-retoma-toggle').checked;
+  const retomaDescription = document.getElementById('sell-retoma-desc').value.trim();
+  const retomaValue = parseFloat(document.getElementById('sell-retoma-value').value)||0;
+  if (retomaIncluded) {
+    if (retomaValue<=0) { toast('❌ Valor da retoma inválido'); return; }
+    if (!retomaDescription) { toast('❌ Descrição da retoma obrigatória'); return; }
+    if (retomaValue>=salePrice) { toast('❌ Retoma não pode ser igual ou superior ao preço total'); return; }
+  }
+  car.salePrice = salePrice;
+  car.saleDate = saleDate;
+  car.retomaIncluded = retomaIncluded;
+  car.retomaDescription = retomaDescription;
+  car.retomaValue = retomaValue;
   sbSaveCar(car);
   save(); renderAll(); closeModal('sell-modal');
   openCaravanDetail(activeCaravanId); toast('✅ Venda registada');
+}
+
+function toggleRetomaFields() {
+  const toggle = document.getElementById('sell-retoma-toggle').checked;
+  const fields = document.getElementById('sell-retoma-fields');
+  fields.style.display = toggle ? 'block' : 'none';
+  if (!toggle) {
+    document.getElementById('sell-retoma-desc').value = '';
+    document.getElementById('sell-retoma-value').value = '';
+    document.getElementById('sell-cash-received').value = '';
+  } else {
+    calcCashReceived();
+  }
+}
+
+function calcCashReceived() {
+  const salePrice = parseFloat(document.getElementById('sell-price').value)||0;
+  const retomaValue = parseFloat(document.getElementById('sell-retoma-value').value)||0;
+  const cashEl = document.getElementById('sell-cash-received');
+  if (cashEl) cashEl.value = salePrice > 0 ? '€ ' + fmt(salePrice - retomaValue) : '';
 }
 
 // ── EXPENSES ──
