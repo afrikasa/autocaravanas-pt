@@ -92,14 +92,47 @@ Fontes: Playfair Display (títulos) + DM Sans (corpo) + DM Mono (labels/mono)
 
 ---
 
+## SEQUENCIA OBRIGATORIA DE AGENTES
+
+**O Claude principal NAO escreve codigo, NAO edita ficheiros, NAO faz commits, NAO faz deploy.**
+**O Claude principal pensa, coordena e anuncia resultados. Toda a execucao e feita por agentes.**
+
+Para qualquer pedido de implementacao, alteracao, fix ou deploy, a sequencia e SEMPRE:
+
+```
+1. feature-dev:code-architect   → ler o ficheiro + desenhar blueprint completo (SEMPRE PRIMEIRO)
+2. feature-developer            → implementar o que o arquitecto definiu
+3. code-reviewer                → rever o codigo produzido (OBRIGATORIO antes de qualquer commit)
+4. devops-deployer              → commit + push (NUNCA sem aprovacao do code-reviewer)
+```
+
+### Regras de disparo
+
+| Se o pedido for... | Spawnar primeiro |
+|--------------------|-----------------|
+| Nova feature / alteracao / adicionar campo | `feature-dev:code-architect` |
+| Bug / erro / nao funciona | `bug-hunter` |
+| Migracao DB / nova tabela / nova coluna | `feature-dev:code-architect` + migracao SSH dentro do plano |
+| Deploy / commit / push | `code-reviewer` primeiro, depois `devops-deployer` |
+| Pergunta sobre o codigo | Responder directamente (nao precisa de agente) |
+
+### Nunca saltar passos
+
+- Nunca fazer Edit/Write directamente — spawnar `feature-developer`
+- Nunca fazer git commit/push directamente — spawnar `devops-deployer`
+- Nunca deployar sem `code-reviewer` ter emitido APROVADO
+- O arquitecto le sempre o ficheiro completo antes de planear
+
+---
+
 ## Regras deste projecto
 
 - Sem frameworks — HTML/CSS/JS puro
 - Sem build step — editar os ficheiros directamente
-- Não usar git add -A — adicionar ficheiros específicos
-- Não criar ficheiros .md extra sem o Marcus pedir
-- Não alterar a password do backoffice sem confirmar
-- Não substituir imagens sem confirmar
+- Nao usar git add -A — adicionar ficheiros especificos
+- Nao criar ficheiros .md extra sem o Marcus pedir
+- Nao alterar a password do backoffice sem confirmar
+- Nao substituir imagens sem confirmar
 
 ---
 
@@ -117,6 +150,6 @@ Fontes: Playfair Display (títulos) + DM Sans (corpo) + DM Mono (labels/mono)
 
 1. Ler este CLAUDE.md
 2. Ler TOOLS/CLAUDE_DESKTOP_DIRECTIVES.md e TOOLS/VERSIONING-AND-WORKFLOW.md
-3. Implementar o que o Marcus pede
-4. Commitar e fazer push (deploy automático no Vercel)
+3. Para qualquer pedido de implementacao: spawnar `feature-dev:code-architect` PRIMEIRO
+4. Seguir a sequencia de agentes acima (arquitecto → implementacao → code-review → deploy)
 5. Só criar tag/release com aprovação explícita
